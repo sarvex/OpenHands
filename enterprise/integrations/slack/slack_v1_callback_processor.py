@@ -25,15 +25,11 @@ from openhands.app_server.event_callback.util import (
 )
 from openhands.sdk import Event
 from openhands.sdk.event import ConversationStateUpdateEvent
-from openhands.app_server.event_callback.registry import (
-    register_event_callback_processor,
-)
 
 
 _logger = logging.getLogger(__name__)
 
 
-@register_event_callback_processor
 class SlackV1CallbackProcessor(EventCallbackProcessor):
     """Callback processor for Slack V1 integrations."""
 
