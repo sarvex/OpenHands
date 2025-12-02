@@ -133,7 +133,7 @@ class AppConversationStartTaskSortOrder(Enum):
     UPDATED_AT_DESC = 'UPDATED_AT_DESC'
 
 
-class AppConversationStartTask(BaseModel):
+class AppConversationStartTask(OpenHandsModel):
     """Object describing the start process for an app conversation.
 
     Because starting an app conversation can be slow (And can involve starting a sandbox),
@@ -158,6 +158,6 @@ class AppConversationStartTask(BaseModel):
     updated_at: datetime = Field(default_factory=utc_now)
 
 
-class AppConversationStartTaskPage(BaseModel):
+class AppConversationStartTaskPage(OpenHandsModel):
     items: list[AppConversationStartTask]
     next_page_id: str | None = None
