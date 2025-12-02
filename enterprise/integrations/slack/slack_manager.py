@@ -320,13 +320,8 @@ class SlackManager(Manager):
                     # Summaries are generated for every messages anyways, we only need to do
                     # this subscription once for the event which kicked off the job.
                     
-                    # Check if this is a v1 conversation - only add SlackCallbackProcessor for non-v1 conversations
-                    from storage.slack_conversation_store import SlackConversationStore
-                    slack_conversation_store = SlackConversationStore.get_instance()
-                    slack_conversation = await slack_conversation_store.get_slack_conversation_by_id(conversation_id)
-                    
                     # Only add SlackCallbackProcessor if the conversation is not v1
-                    if slack_conversation and not slack_conversation.v1:
+                    if not slack_view.v1:
                         processor = SlackCallbackProcessor(
                             slack_user_id=slack_view.slack_user_id,
                             channel_id=slack_view.channel_id,

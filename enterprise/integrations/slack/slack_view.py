@@ -227,6 +227,7 @@ class SlackNewConversationView(SlackViewInterface):
         if v1_enabled:
             try:
                 # Use V1 app conversation service
+                self.v1 = True
                 await self._create_v1_conversation(jinja, provider_tokens, user_secrets)
                 return self.conversation_id
 
@@ -234,8 +235,11 @@ class SlackNewConversationView(SlackViewInterface):
                 logger.warning(
                     f'Error creating V1 conversation, falling back to V0: {e}'
                 )
+                # Reset v1 flag since we're falling back to v0
+                self.v1 = False
 
         # Use existing V0 conversation service
+        self.v1 = False
         await self._create_v0_conversation(jinja, provider_tokens, user_secrets)
         return self.conversation_id
 

@@ -27,20 +27,6 @@ class SlackConversationStore:
 
             return conversation
 
-    async def get_slack_conversation_by_id(
-        self, conversation_id: str
-    ) -> SlackConversation | None:
-        """Get a slack conversation by conversation_id.
-        """
-        with session_maker() as session:
-            conversation = (
-                session.query(SlackConversation)
-                .filter(SlackConversation.conversation_id == conversation_id)
-                .first()
-            )
-
-            return conversation
-
     async def create_slack_conversation(
         self, slack_converstion: SlackConversation
     ) -> None:
