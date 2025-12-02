@@ -148,7 +148,7 @@ class AppConversationServiceBase(AppConversationService, ABC):
 The following secrets are available as environment variables:
 {secrets_list}
 
-If the secrets are hidden, you must tell the user that the secrets are hidden and cannot provide explicit values for them.
+You must tell the user that the secrets are hidden and cannot provide explicit values for them.
 </AVAILABLE_SECRETS>"""
 
         # Append to existing suffix if present, otherwise return just the secrets section
