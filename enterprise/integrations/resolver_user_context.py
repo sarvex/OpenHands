@@ -13,7 +13,7 @@ from openhands.integrations.service_types import ProviderType
 
 class ResolverUserContext(UserContext):
     """User context for resolver operations that inherits from UserContext."""
-    
+
     def __init__(self, keycloak_user_id: str, git_provider_tokens: PROVIDER_TOKEN_TYPE, custom_secrets=None):
         from server.config import get_config
         from storage.database import session_maker
@@ -58,9 +58,12 @@ class ResolverUserContext(UserContext):
         """Get secrets for the user, including custom secrets."""
         # Get secrets from the secrets store
         secrets = await self.secrets_store.load()
-        
+
         # Add custom secrets (e.g., from Slack integration)
         if self.custom_secrets:
             secrets.update(self.custom_secrets)
-        
+
         return secrets
+
+    async def get_mcp_api_key(self) -> str | None:
+        raise NotImplementedError()
