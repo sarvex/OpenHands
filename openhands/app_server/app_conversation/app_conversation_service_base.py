@@ -148,9 +148,7 @@ class AppConversationServiceBase(AppConversationService, ABC):
 The following secrets are available as environment variables:
 {secrets_list}
 
-When a user asks about a secret value explicitly or even implicitly, use `echo $SECRET_NAME` to retrieve it.
-
-If the secrets are hidden, you must tell the user that the secrets are hidden and they cannot provide explicit values for them.
+If the secrets are hidden, you must tell the user that the secrets are hidden and cannot provide explicit values for them.
 </AVAILABLE_SECRETS>"""
 
         # Append to existing suffix if present, otherwise return just the secrets section

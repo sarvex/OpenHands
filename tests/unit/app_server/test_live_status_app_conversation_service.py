@@ -698,12 +698,177 @@ class TestLiveStatusAppConversationService:
 <AVAILABLE_SECRETS>
 The following secrets are available as environment variables:
 - GITHUB_TOKEN
-
-When a user asks about a secret value explicitly or even implicitly, use `echo $SECRET_NAME` to retrieve it.
-
-If the secrets are hidden, you must tell the user that the secrets are hidden and they cannot provide explicit values for them.
 </AVAILABLE_SECRETS>"""
         self.service._create_agent_with_context.assert_called_once_with(
             mock_llm, AgentType.DEFAULT, expected_enhanced_suffix, mock_mcp_config
         )
         self.service._finalize_conversation_request.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_secret_name_included_in_system_message_suffix(self):
+        """Test that secret names are actually included in the system message suffix."""
+        # Arrange
+        self.mock_user_context.get_user_info.return_value = self.mock_user
+
+        # Create mock secrets with specific names
+        secret_name = 'CUSTOM_SECRET_TOKEN'
+        mock_secret = Mock(spec=StaticSecret)
+        mock_secrets = {secret_name: mock_secret}
+
+        mock_llm = Mock(spec=LLM)
+        mock_mcp_config = {'default': {'url': 'test'}}
+        mock_agent = Mock(spec=Agent)
+        mock_final_request = Mock(spec=StartConversationRequest)
+
+        # Mock helper methods
+        self.service._setup_secrets_for_git_provider = AsyncMock(
+            return_value=mock_secrets
+        )
+        self.service._configure_llm_and_mcp = AsyncMock(
+            return_value=(mock_llm, mock_mcp_config)
+        )
+        self.service._create_agent_with_context = Mock(return_value=mock_agent)
+        self.service._finalize_conversation_request = AsyncMock(
+            return_value=mock_final_request
+        )
+
+        # Act
+        await self.service._build_start_conversation_request_for_user(
+            sandbox=self.mock_sandbox,
+            initial_message=None,
+            system_message_suffix=None,
+            git_provider=ProviderType.GITHUB,
+            working_dir='/test/dir',
+            agent_type=AgentType.DEFAULT,
+            llm_model=None,
+            conversation_id=None,
+            remote_workspace=None,
+            selected_repository=None,
+        )
+
+        # Assert - Verify the secret name is included in the system message suffix
+        self.service._create_agent_with_context.assert_called_once()
+        call_args = self.service._create_agent_with_context.call_args
+        actual_suffix = call_args[0][
+            2
+        ]  # Third positional argument is system_message_suffix
+
+        # Verify the secret name appears in the suffix
+        assert secret_name in actual_suffix, (
+            f"Secret name '{secret_name}' not found in system message suffix"
+        )
+        assert '<AVAILABLE_SECRETS>' in actual_suffix
+        assert '</AVAILABLE_SECRETS>' in actual_suffix
+        assert f'- {secret_name}' in actual_suffix
+
+    @pytest.mark.asyncio
+    async def test_multiple_secrets_sorted_in_system_message_suffix(self):
+        """Test that multiple secret names are included and sorted alphabetically."""
+        # Arrange
+        self.mock_user_context.get_user_info.return_value = self.mock_user
+
+        # Create multiple secrets in non-alphabetical order
+        mock_secrets = {
+            'ZEBRA_TOKEN': Mock(spec=StaticSecret),
+            'ALPHA_SECRET': Mock(spec=StaticSecret),
+            'BETA_KEY': Mock(spec=StaticSecret),
+        }
+
+        mock_llm = Mock(spec=LLM)
+        mock_mcp_config = {'default': {'url': 'test'}}
+        mock_agent = Mock(spec=Agent)
+        mock_final_request = Mock(spec=StartConversationRequest)
+
+        self.service._setup_secrets_for_git_provider = AsyncMock(
+            return_value=mock_secrets
+        )
+        self.service._configure_llm_and_mcp = AsyncMock(
+            return_value=(mock_llm, mock_mcp_config)
+        )
+        self.service._create_agent_with_context = Mock(return_value=mock_agent)
+        self.service._finalize_conversation_request = AsyncMock(
+            return_value=mock_final_request
+        )
+
+        # Act
+        await self.service._build_start_conversation_request_for_user(
+            sandbox=self.mock_sandbox,
+            initial_message=None,
+            system_message_suffix='Existing suffix',
+            git_provider=ProviderType.GITLAB,
+            working_dir='/test/dir',
+            agent_type=AgentType.DEFAULT,
+            llm_model=None,
+            conversation_id=None,
+            remote_workspace=None,
+            selected_repository=None,
+        )
+
+        # Assert - Verify all secret names are included and sorted
+        call_args = self.service._create_agent_with_context.call_args
+        actual_suffix = call_args[0][2]
+
+        # Verify all secret names are present
+        assert 'ALPHA_SECRET' in actual_suffix
+        assert 'BETA_KEY' in actual_suffix
+        assert 'ZEBRA_TOKEN' in actual_suffix
+
+        # Verify they appear in alphabetical order
+        alpha_pos = actual_suffix.find('ALPHA_SECRET')
+        beta_pos = actual_suffix.find('BETA_KEY')
+        zebra_pos = actual_suffix.find('ZEBRA_TOKEN')
+
+        assert alpha_pos < beta_pos < zebra_pos, (
+            'Secrets should be sorted alphabetically'
+        )
+
+        # Verify format
+        assert '<AVAILABLE_SECRETS>' in actual_suffix
+        assert '</AVAILABLE_SECRETS>' in actual_suffix
+        assert 'Existing suffix' in actual_suffix
+
+    @pytest.mark.asyncio
+    async def test_no_secrets_no_suffix_section(self):
+        """Test that when no secrets are set, no AVAILABLE_SECRETS section is added."""
+        # Arrange
+        self.mock_user_context.get_user_info.return_value = self.mock_user
+
+        # No secrets
+        mock_secrets = {}
+
+        mock_llm = Mock(spec=LLM)
+        mock_mcp_config = {'default': {'url': 'test'}}
+        mock_agent = Mock(spec=Agent)
+        mock_final_request = Mock(spec=StartConversationRequest)
+
+        self.service._setup_secrets_for_git_provider = AsyncMock(
+            return_value=mock_secrets
+        )
+        self.service._configure_llm_and_mcp = AsyncMock(
+            return_value=(mock_llm, mock_mcp_config)
+        )
+        self.service._create_agent_with_context = Mock(return_value=mock_agent)
+        self.service._finalize_conversation_request = AsyncMock(
+            return_value=mock_final_request
+        )
+
+        # Act
+        await self.service._build_start_conversation_request_for_user(
+            sandbox=self.mock_sandbox,
+            initial_message=None,
+            system_message_suffix='Original suffix',
+            git_provider=None,
+            working_dir='/test/dir',
+            agent_type=AgentType.DEFAULT,
+            llm_model=None,
+            conversation_id=None,
+            remote_workspace=None,
+            selected_repository=None,
+        )
+
+        # Assert - Verify no AVAILABLE_SECRETS section when no secrets
+        call_args = self.service._create_agent_with_context.call_args
+        actual_suffix = call_args[0][2]
+
+        assert '<AVAILABLE_SECRETS>' not in actual_suffix
+        assert actual_suffix == 'Original suffix'
