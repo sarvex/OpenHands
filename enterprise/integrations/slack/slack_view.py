@@ -34,6 +34,7 @@ from openhands.sdk import TextContent
 from openhands.server.services.conversation_service import (
     create_new_conversation,
     setup_init_conversation_settings,
+    initialize_conversation
 )
 from openhands.server.shared import ConversationStoreImpl, config, conversation_manager
 from openhands.server.user_auth.user_auth import UserAuth
