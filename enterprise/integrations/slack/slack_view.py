@@ -113,8 +113,7 @@ class SlackNewConversationView(SlackViewInterface):
         return ''
 
     def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
-        "Instructions passed when conversation is first initialized"
-
+        """Instructions passed when conversation is first initialized"""
         user_info: SlackUser = self.slack_to_openhands_user
 
         messages = []
@@ -174,7 +173,7 @@ class SlackNewConversationView(SlackViewInterface):
                 'Attempting to start conversation without confirming selected repo from user'
             )
 
-    async def save_slack_convo(self):
+    async def save_slack_convo(self, is_v1: bool = False):
         if self.slack_to_openhands_user:
             user_info: SlackUser = self.slack_to_openhands_user
 
@@ -185,6 +184,7 @@ class SlackNewConversationView(SlackViewInterface):
                     'conversation_id': self.conversation_id,
                     'keycloak_user_id': user_info.keycloak_user_id,
                     'parent_id': self.thread_ts or self.message_ts,
+                    'v1': is_v1,
                 },
             )
             slack_conversation = SlackConversation(
@@ -193,6 +193,7 @@ class SlackNewConversationView(SlackViewInterface):
                 keycloak_user_id=user_info.keycloak_user_id,
                 parent_id=self.thread_ts
                 or self.message_ts,  # conversations can start in a thread reply as well; we should always references the parent's (root level msg's) message ID
+                v1=is_v1,
             )
             await slack_conversation_store.create_slack_conversation(slack_conversation)
 
@@ -211,8 +212,7 @@ class SlackNewConversationView(SlackViewInterface):
         )
 
     async def create_or_update_conversation(self, jinja: Environment) -> str:
-        """
-        Only creates a new conversation
+        """Only creates a new conversation
         """
         self._verify_necessary_values_are_set()
 
@@ -283,13 +283,12 @@ class SlackNewConversationView(SlackViewInterface):
 
         self.conversation_id = agent_loop_info.conversation_id
         logger.info(f'[Slack]: Created V0 conversation: {self.conversation_id}')
-        await self.save_slack_convo()
+        await self.save_slack_convo(is_v1=False)
 
     async def _create_v1_conversation(
         self, jinja: Environment, provider_tokens, user_secrets
     ) -> None:
         """Create conversation using the new V1 app conversation system."""
-
         await self.initialize_new_conversation()
         user_instructions, conversation_instructions = self._get_instructions(jinja)
 
@@ -346,7 +345,7 @@ class SlackNewConversationView(SlackViewInterface):
                     )
 
         logger.info(f'[Slack V1]: Created new conversation: {self.conversation_id}')
-        await self.save_slack_convo()
+        await self.save_slack_convo(is_v1=True)
 
     def get_callback_id(self) -> str:
         return f'slack_{self.channel_id}_{self.message_ts}'
@@ -387,8 +386,7 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
         return user_message, ''
 
     async def create_or_update_conversation(self, jinja: Environment) -> str:
-        """
-        Send new user message to converation
+        """Send new user message to converation
         """
         user_info: SlackUser = self.slack_to_openhands_user
         saas_user_auth: UserAuth = self.saas_user_auth

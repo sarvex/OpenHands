@@ -244,13 +244,11 @@ class SlackManager(Manager):
     async def is_job_requested(
         self, message: Message, slack_view: SlackViewInterface
     ) -> bool:
-        """
-        A job is always request we only receive webhooks for events associated with the slack bot
+        """A job is always request we only receive webhooks for events associated with the slack bot
         This method really just checks
             1. Is the user is authenticated
             2. Do we have the necessary information to start a job (either by inferring the selected repo, otherwise asking the user)
         """
-
         # Infer repo from user message is not needed; user selected repo from the form or is updating existing convo
         if isinstance(slack_view, SlackUpdateExistingConversationView):
             return True
@@ -321,20 +319,32 @@ class SlackManager(Manager):
                     # We don't re-subscribe for follow up messages from slack.
                     # Summaries are generated for every messages anyways, we only need to do
                     # this subscription once for the event which kicked off the job.
-                    processor = SlackCallbackProcessor(
-                        slack_user_id=slack_view.slack_user_id,
-                        channel_id=slack_view.channel_id,
-                        message_ts=slack_view.message_ts,
-                        thread_ts=slack_view.thread_ts,
-                        team_id=slack_view.team_id,
-                    )
+                    
+                    # Check if this is a v1 conversation - only add SlackCallbackProcessor for non-v1 conversations
+                    from storage.slack_conversation_store import SlackConversationStore
+                    slack_conversation_store = SlackConversationStore.get_instance()
+                    slack_conversation = await slack_conversation_store.get_slack_conversation_by_id(conversation_id)
+                    
+                    # Only add SlackCallbackProcessor if the conversation is not v1
+                    if slack_conversation and not slack_conversation.v1:
+                        processor = SlackCallbackProcessor(
+                            slack_user_id=slack_view.slack_user_id,
+                            channel_id=slack_view.channel_id,
+                            message_ts=slack_view.message_ts,
+                            thread_ts=slack_view.thread_ts,
+                            team_id=slack_view.team_id,
+                        )
 
-                    # Register the callback processor
-                    register_callback_processor(conversation_id, processor)
+                        # Register the callback processor
+                        register_callback_processor(conversation_id, processor)
 
-                    logger.info(
-                        f'[Slack] Created callback processor for conversation {conversation_id}'
-                    )
+                        logger.info(
+                            f'[Slack] Created callback processor for conversation {conversation_id}'
+                        )
+                    else:
+                        logger.info(
+                            f'[Slack] Skipping callback processor for v1 conversation {conversation_id}'
+                        )
 
                 msg_info = slack_view.get_response_msg()
 

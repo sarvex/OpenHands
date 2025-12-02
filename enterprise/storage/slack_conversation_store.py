@@ -14,8 +14,7 @@ class SlackConversationStore:
     async def get_slack_conversation(
         self, channel_id: str, parent_id: str
     ) -> SlackConversation | None:
-        """
-        Get a slack conversation by channel_id and message_ts.
+        """Get a slack conversation by channel_id and message_ts.
         Both parameters are required to match for a conversation to be returned.
         """
         with session_maker() as session:
@@ -23,6 +22,20 @@ class SlackConversationStore:
                 session.query(SlackConversation)
                 .filter(SlackConversation.channel_id == channel_id)
                 .filter(SlackConversation.parent_id == parent_id)
+                .first()
+            )
+
+            return conversation
+
+    async def get_slack_conversation_by_id(
+        self, conversation_id: str
+    ) -> SlackConversation | None:
+        """Get a slack conversation by conversation_id.
+        """
+        with session_maker() as session:
+            conversation = (
+                session.query(SlackConversation)
+                .filter(SlackConversation.conversation_id == conversation_id)
                 .first()
             )
 
