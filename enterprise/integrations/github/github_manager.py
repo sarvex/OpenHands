@@ -22,6 +22,7 @@ from integrations.utils import (
     HOST_URL,
     OPENHANDS_RESOLVER_TEMPLATES_DIR,
 )
+from integrations.v1_utils import get_saas_user_auth
 from jinja2 import Environment, FileSystemLoader
 from pydantic import SecretStr
 from server.auth.constants import GITHUB_APP_CLIENT_ID, GITHUB_APP_PRIVATE_KEY
@@ -164,8 +165,18 @@ class GithubManager(Manager):
             )
 
         if await self.is_job_requested(message):
+            payload = message.message.get('payload', {})
+            user_id = payload['sender']['id']
+            keyloak_user_id = await self.token_manager.get_user_id_from_idp_user_id(
+                user_id, ProviderType.GITHUB
+            )
+
+            saas_user_auth = await get_saas_user_auth(
+                keyloak_user_id, self.token_manager
+            )
+
             github_view = await GithubFactory.create_github_view_from_payload(
-                message, self.token_manager
+                message, keyloak_user_id, saas_user_auth
             )
             logger.info(
                 f'[GitHub] Creating job for {github_view.user_info.username} in {github_view.full_repo_name}#{github_view.issue_number}'

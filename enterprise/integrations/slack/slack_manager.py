@@ -15,9 +15,8 @@ from integrations.utils import (
     HOST_URL,
     OPENHANDS_RESOLVER_TEMPLATES_DIR,
 )
+from integrations.v1_utils import get_saas_user_auth
 from jinja2 import Environment, FileSystemLoader
-from pydantic import SecretStr
-from server.auth.saas_user_auth import SaasUserAuth
 from server.constants import SLACK_CLIENT_ID
 from server.utils.conversation_callback_utils import register_callback_processor
 from slack_sdk.oauth import AuthorizeUrlGenerator
@@ -54,17 +53,6 @@ class SlackManager(Manager):
         if message.source != SourceType.SLACK:
             raise ValueError(f'Unexpected message source {message.source}')
 
-    async def _get_user_auth(self, keycloak_user_id: str) -> UserAuth:
-        offline_token = await self.token_manager.load_offline_token(keycloak_user_id)
-        if offline_token is None:
-            logger.info('no_offline_token_found')
-
-        user_auth = SaasUserAuth(
-            user_id=keycloak_user_id,
-            refresh_token=SecretStr(offline_token),
-        )
-        return user_auth
-
     async def authenticate_user(
         self, slack_user_id: str
     ) -> tuple[SlackUser | None, UserAuth | None]:
@@ -81,7 +69,9 @@ class SlackManager(Manager):
 
         saas_user_auth = None
         if slack_user:
-            saas_user_auth = await self._get_user_auth(slack_user.keycloak_user_id)
+            saas_user_auth = await get_saas_user_auth(
+                slack_user.keycloak_user_id, self.token_manager
+            )
             # slack_view.saas_user_auth = await self._get_user_auth(slack_view.slack_to_openhands_user.keycloak_user_id)
 
         return slack_user, saas_user_auth
@@ -316,11 +306,14 @@ class SlackManager(Manager):
                 )
 
                 # Only add SlackCallbackProcessor for new conversations (not updates) and non-v1 conversations
-                if not isinstance(slack_view, SlackUpdateExistingConversationView) and not slack_view.v1:
+                if (
+                    not isinstance(slack_view, SlackUpdateExistingConversationView)
+                    and not slack_view.v1
+                ):
                     # We don't re-subscribe for follow up messages from slack.
                     # Summaries are generated for every messages anyways, we only need to do
                     # this subscription once for the event which kicked off the job.
-                    
+
                     processor = SlackCallbackProcessor(
                         slack_user_id=slack_view.slack_user_id,
                         channel_id=slack_view.channel_id,

@@ -8,8 +8,8 @@ from integrations.github.github_types import (
     WorkflowRunStatus,
 )
 from integrations.models import Message
-from integrations.types import ResolverViewInterface, UserData
 from integrations.resolver_user_context import ResolverUserContext
+from integrations.types import ResolverViewInterface, UserData
 from integrations.utils import (
     ENABLE_PROACTIVE_CONVERSATION_STARTERS,
     HOST,
@@ -45,6 +45,7 @@ from openhands.server.services.conversation_service import (
     initialize_conversation,
     start_conversation,
 )
+from openhands.server.user_auth.user_auth import UserAuth
 from openhands.storage.data_models.conversation_metadata import (
     ConversationMetadata,
     ConversationTrigger,
@@ -107,6 +108,7 @@ class GithubIssue(ResolverViewInterface):
     title: str
     description: str
     previous_comments: list[Comment]
+    saas_user_auth: UserAuth | None
 
     async def _load_resolver_context(self):
         github_service = GithubServiceImpl(
@@ -250,10 +252,7 @@ class GithubIssue(ResolverViewInterface):
         )
 
         # Set up the GitHub user context for the V1 system
-        github_user_context = ResolverUserContext(
-            keycloak_user_id=self.user_info.keycloak_user_id,
-            git_provider_tokens=git_provider_tokens,
-        )
+        github_user_context = ResolverUserContext(saas_user_auth=self.saas_user_auth)
         setattr(injector_state, USER_CONTEXT_ATTR, github_user_context)
 
         async with get_app_conversation_service(
@@ -730,7 +729,7 @@ class GithubFactory:
 
     @staticmethod
     async def create_github_view_from_payload(
-        message: Message, token_manager: TokenManager
+        message: Message, keycloak_user_id: str, saas_user_auth: UserAuth
     ) -> ResolverViewInterface:
         """Create the appropriate class (GithubIssue or GithubPRComment) based on the payload.
         Also return metadata about the event (e.g., action type).
@@ -740,17 +739,10 @@ class GithubFactory:
         user_id = payload['sender']['id']
         username = payload['sender']['login']
 
-        keyloak_user_id = await token_manager.get_user_id_from_idp_user_id(
-            user_id, ProviderType.GITHUB
-        )
-
-        if keyloak_user_id is None:
-            logger.warning(f'Got invalid keyloak user id for GitHub User {user_id} ')
-
         selected_repo = GithubFactory.get_full_repo_name(repo_obj)
         is_public_repo = not repo_obj.get('private', True)
         user_info = UserData(
-            user_id=user_id, username=username, keycloak_user_id=keyloak_user_id
+            user_id=user_id, username=username, keycloak_user_id=keycloak_user_id
         )
 
         installation_id = message.message['installation']
@@ -774,6 +766,7 @@ class GithubFactory:
                 title='',
                 description='',
                 previous_comments=[],
+                saas_user_auth=saas_user_auth,
             )
 
         elif GithubFactory.is_issue_comment(message):
@@ -799,6 +792,7 @@ class GithubFactory:
                 title='',
                 description='',
                 previous_comments=[],
+                saas_user_auth=saas_user_auth,
             )
 
         elif GithubFactory.is_pr_comment(message):
@@ -840,6 +834,7 @@ class GithubFactory:
                 title='',
                 description='',
                 previous_comments=[],
+                saas_user_auth=saas_user_auth,
             )
 
         elif GithubFactory.is_inline_pr_comment(message):
@@ -873,6 +868,7 @@ class GithubFactory:
                 title='',
                 description='',
                 previous_comments=[],
+                saas_user_auth=saas_user_auth,
             )
 
         else:

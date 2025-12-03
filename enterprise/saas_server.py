@@ -44,7 +44,6 @@ from openhands.server.middleware import (  # noqa: E402
 )
 from openhands.server.static import SPAStaticFiles  # noqa: E402
 
-
 directory = os.getenv('FRONTEND_DIRECTORY', './frontend/build')
 
 patch_mcp_server()

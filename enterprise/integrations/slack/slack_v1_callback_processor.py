@@ -4,8 +4,8 @@ from uuid import UUID
 
 import httpx
 from pydantic import Field
-from storage.slack_team_store import SlackTeamStore
 from slack_sdk import WebClient
+from storage.slack_team_store import SlackTeamStore
 
 from openhands.agent_server.models import AskAgentRequest, AskAgentResponse
 from openhands.app_server.event_callback.event_callback_models import (
@@ -25,7 +25,6 @@ from openhands.app_server.event_callback.util import (
 )
 from openhands.sdk import Event
 from openhands.sdk.event import ConversationStateUpdateEvent
-
 
 _logger = logging.getLogger(__name__)
 
@@ -71,7 +70,9 @@ class SlackV1CallbackProcessor(EventCallbackProcessor):
             try:
                 # Check if we have bot token before posting
                 slack_team_store = SlackTeamStore.get_instance()
-                bot_access_token = slack_team_store.get_team_bot_token(self.slack_view_data.get('team_id', ''))
+                bot_access_token = slack_team_store.get_team_bot_token(
+                    self.slack_view_data.get('team_id', '')
+                )
 
                 if bot_access_token:
                     await self._post_summary_to_slack(

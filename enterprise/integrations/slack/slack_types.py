@@ -44,5 +44,4 @@ class SlackViewInterface(SummaryExtractionTracker, ABC):
 
 
 class StartingConvoException(Exception):
-    """Raised when trying to send message to a conversation that's is still starting up
-    """
+    """Raised when trying to send message to a conversation that's is still starting up"""

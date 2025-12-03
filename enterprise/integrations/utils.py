@@ -25,7 +25,6 @@ from openhands.events.action import (
 from openhands.events.event_store_abc import EventStoreABC
 from openhands.events.observation.agent import AgentStateChangedObservation
 from openhands.integrations.service_types import Repository
-from openhands.sdk.conversation.secret_source import SecretSource
 from openhands.storage.data_models.conversation_status import ConversationStatus
 from openhands.utils.async_utils import call_sync_from_async
 
@@ -99,7 +98,7 @@ async def get_user_v1_enabled_setting(user_id: str | None) -> bool:
         return False
 
     from storage.saas_settings_store import SaasSettingsStore
-    
+
     config = get_config()
     settings_store = SaasSettingsStore(
         user_id=user_id, session_maker=session_maker, config=config
@@ -590,5 +589,3 @@ def markdown_to_jira_markup(markdown_text: str) -> str:
         # Log the error but don't raise it - return original text as fallback
         print(f'Error converting markdown to Jira markup: {str(e)}')
         return markdown_text or ''
-
-

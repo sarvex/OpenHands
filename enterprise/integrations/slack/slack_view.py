@@ -1,10 +1,9 @@
 from dataclasses import dataclass
-from uuid import uuid4
 
 from integrations.models import Message
+from integrations.resolver_user_context import ResolverUserContext
 from integrations.slack.slack_types import SlackViewInterface, StartingConvoException
 from integrations.slack.slack_v1_callback_processor import SlackV1CallbackProcessor
-from integrations.resolver_user_context import ResolverUserContext
 from integrations.utils import (
     CONVERSATION_URL,
     get_final_agent_observation,
@@ -33,12 +32,15 @@ from openhands.integrations.provider import ProviderHandler, ProviderType
 from openhands.sdk import TextContent
 from openhands.server.services.conversation_service import (
     create_new_conversation,
+    initialize_conversation,
     setup_init_conversation_settings,
-    initialize_conversation
 )
 from openhands.server.shared import ConversationStoreImpl, config, conversation_manager
 from openhands.server.user_auth.user_auth import UserAuth
-from openhands.storage.data_models.conversation_metadata import ConversationMetadata, ConversationTrigger
+from openhands.storage.data_models.conversation_metadata import (
+    ConversationMetadata,
+    ConversationTrigger,
+)
 from openhands.utils.async_utils import GENERAL_TIMEOUT, call_async_from_sync
 
 # =================================================
@@ -212,8 +214,7 @@ class SlackNewConversationView(SlackViewInterface):
         )
 
     async def create_or_update_conversation(self, jinja: Environment) -> str:
-        """Only creates a new conversation
-        """
+        """Only creates a new conversation"""
         self._verify_necessary_values_are_set()
 
         provider_tokens = await self.saas_user_auth.get_provider_tokens()
@@ -233,7 +234,8 @@ class SlackNewConversationView(SlackViewInterface):
 
             except Exception as e:
                 logger.error(
-                    f'Error creating V1 conversation, falling back to V0: {e}', exc_info=True
+                    f'Error creating V1 conversation, falling back to V0: {e}',
+                    exc_info=True,
                 )
                 # Reset v1 flag since we're falling back to v0
                 self.v1 = False
@@ -254,7 +256,6 @@ class SlackNewConversationView(SlackViewInterface):
 
         self.conversation_id = conversation_metadata.conversation_id
         return conversation_metadata
-
 
     async def _create_v0_conversation(
         self, jinja: Environment, provider_tokens, user_secrets
@@ -329,11 +330,7 @@ class SlackNewConversationView(SlackViewInterface):
         )
 
         # Set up the Slack user context for the V1 system
-        slack_user_context = ResolverUserContext(
-            keycloak_user_id=self.slack_to_openhands_user.keycloak_user_id,
-            git_provider_tokens=provider_tokens,
-            custom_secrets=user_secrets.custom_secrets if user_secrets else None,
-        )
+        slack_user_context = ResolverUserContext(saas_user_auth=self.saas_user_auth)
         setattr(injector_state, USER_CONTEXT_ATTR, slack_user_context)
 
         async with get_app_conversation_service(
@@ -390,8 +387,7 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
         return user_message, ''
 
     async def create_or_update_conversation(self, jinja: Environment) -> str:
-        """Send new user message to converation
-        """
+        """Send new user message to converation"""
         user_info: SlackUser = self.slack_to_openhands_user
         saas_user_auth: UserAuth = self.saas_user_auth
         user_id = user_info.keycloak_user_id

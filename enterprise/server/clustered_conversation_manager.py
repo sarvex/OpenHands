@@ -743,7 +743,7 @@ class ClusteredConversationManager(StandaloneConversationManager):
 
         # Restart the agent loop
         from storage.saas_settings_store import SaasSettingsStore
-        
+
         config = load_openhands_config()
         settings_store = await SaasSettingsStore.get_instance(config, user_id)
         settings = await settings_store.load()
