@@ -384,28 +384,11 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
 
         return user_message, ''
 
-    async def create_or_update_conversation(self, jinja: Environment) -> str:
-        """Send new user message to converation"""
+
+    async def send_message_to_v0_conversation(self, jinja: Environment):
         user_info: SlackUser = self.slack_to_openhands_user
-        saas_user_auth: UserAuth = self.saas_user_auth
         user_id = user_info.keycloak_user_id
-
-        # Org management in the future will get rid of this
-        # For now, only user that created the conversation can send follow up messages to it
-        if user_id != self.slack_conversation.keycloak_user_id:
-            raise StartingConvoException(
-                f'{user_info.slack_display_name} is not authorized to send messages to this conversation.'
-            )
-
-        # Check if conversation has been deleted
-        # Update logic when soft delete is implemented
-        conversation_store = await ConversationStoreImpl.get_instance(config, user_id)
-
-        try:
-            await conversation_store.get_metadata(self.conversation_id)
-        except FileNotFoundError:
-            raise StartingConvoException('Conversation no longer exists.')
-
+        saas_user_auth: UserAuth = self.saas_user_auth
         provider_tokens = await saas_user_auth.get_provider_tokens()
 
         # Should we raise here if there are no provider tokens?
@@ -437,6 +420,34 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
         await conversation_manager.send_event_to_conversation(
             self.conversation_id, event_to_dict(user_msg_action)
         )
+
+    async def create_or_update_conversation(self, jinja: Environment) -> str:
+        """Send new user message to converation"""
+        user_info: SlackUser = self.slack_to_openhands_user
+
+        user_id = user_info.keycloak_user_id
+
+        # Org management in the future will get rid of this
+        # For now, only user that created the conversation can send follow up messages to it
+        if user_id != self.slack_conversation.keycloak_user_id:
+            raise StartingConvoException(
+                f'{user_info.slack_display_name} is not authorized to send messages to this conversation.'
+            )
+
+        # Check if conversation has been deleted
+        # Update logic when soft delete is implemented
+        conversation_store = await ConversationStoreImpl.get_instance(config, user_id)
+
+        try:
+            conversation_metadata = await conversation_store.get_metadata(self.conversation_id)
+        except FileNotFoundError:
+            raise StartingConvoException('Conversation no longer exists.')
+
+
+        if conversation_metadata.conversation_version == 'v1':
+            pass
+        else:
+            self.send_message_to_v0_conversation(jinja)
 
         return self.conversation_id
 
