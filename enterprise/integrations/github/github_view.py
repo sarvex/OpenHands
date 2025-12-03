@@ -19,7 +19,7 @@ from integrations.utils import (
     has_exact_mention,
 )
 from jinja2 import Environment
-from pydantic.dataclasses import dataclass
+from dataclasses import dataclass
 from server.auth.constants import GITHUB_APP_CLIENT_ID, GITHUB_APP_PRIVATE_KEY
 from server.auth.token_manager import TokenManager
 from server.config import get_config
