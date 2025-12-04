@@ -1,6 +1,7 @@
 from unittest import TestCase, mock
 from unittest.mock import MagicMock, patch
 
+import pytest
 from integrations.github.github_view import GithubFactory, GithubIssue, get_oh_labels
 from integrations.models import Message, SourceType
 from integrations.types import UserData
@@ -79,11 +80,12 @@ class TestGithubCommentCaseInsensitivity(TestCase):
         self.assertTrue(GithubFactory.is_issue_comment(message_mixed))
 
 
-class TestGithubV1ConversationRouting(TestCase):
+class TestGithubV1ConversationRouting:
     """Test V1 conversation routing logic in GitHub integration."""
 
-    def setUp(self):
-        """Set up test fixtures."""
+    @pytest.fixture
+    def github_issue(self):
+        """Create a GithubIssue instance for testing."""
         # Create a proper UserData instance instead of MagicMock
         user_data = UserData(
             user_id=123, username='testuser', keycloak_user_id='test-keycloak-id'
@@ -100,7 +102,14 @@ class TestGithubV1ConversationRouting(TestCase):
             },
         )
 
-        self.github_issue = GithubIssue(
+        # Create a mock UserAuth
+        from unittest.mock import MagicMock
+
+        from openhands.server.user_auth.user_auth import UserAuth
+
+        mock_user_auth = MagicMock(spec=UserAuth)
+
+        return GithubIssue(
             user_info=user_data,
             full_repo_name='test/repo',
             issue_number=123,
@@ -114,13 +123,14 @@ class TestGithubV1ConversationRouting(TestCase):
             title='Test Issue',
             description='Test issue description',
             previous_comments=[],
+            saas_user_auth=mock_user_auth,
         )
 
     @patch('integrations.github.github_view.get_user_v1_enabled_setting')
     @patch.object(GithubIssue, '_create_v0_conversation')
     @patch.object(GithubIssue, '_create_v1_conversation')
     async def test_create_new_conversation_routes_to_v0_when_disabled(
-        self, mock_create_v1, mock_create_v0, mock_get_v1_setting
+        self, mock_create_v1, mock_create_v0, mock_get_v1_setting, github_issue
     ):
         """Test that conversation creation routes to V0 when v1_enabled is False."""
         # Mock v1_enabled as False
@@ -134,7 +144,7 @@ class TestGithubV1ConversationRouting(TestCase):
         conversation_metadata = MagicMock()
 
         # Call the method
-        await self.github_issue.create_new_conversation(
+        await github_issue.create_new_conversation(
             jinja_env, git_provider_tokens, conversation_metadata
         )
 
@@ -148,7 +158,7 @@ class TestGithubV1ConversationRouting(TestCase):
     @patch.object(GithubIssue, '_create_v0_conversation')
     @patch.object(GithubIssue, '_create_v1_conversation')
     async def test_create_new_conversation_routes_to_v1_when_enabled(
-        self, mock_create_v1, mock_create_v0, mock_get_v1_setting
+        self, mock_create_v1, mock_create_v0, mock_get_v1_setting, github_issue
     ):
         """Test that conversation creation routes to V1 when v1_enabled is True."""
         # Mock v1_enabled as True
@@ -162,7 +172,7 @@ class TestGithubV1ConversationRouting(TestCase):
         conversation_metadata = MagicMock()
 
         # Call the method
-        await self.github_issue.create_new_conversation(
+        await github_issue.create_new_conversation(
             jinja_env, git_provider_tokens, conversation_metadata
         )
 
@@ -176,7 +186,7 @@ class TestGithubV1ConversationRouting(TestCase):
     @patch.object(GithubIssue, '_create_v0_conversation')
     @patch.object(GithubIssue, '_create_v1_conversation')
     async def test_create_new_conversation_fallback_on_v1_setting_error(
-        self, mock_create_v1, mock_create_v0, mock_get_v1_setting
+        self, mock_create_v1, mock_create_v0, mock_get_v1_setting, github_issue
     ):
         """Test that conversation creation falls back to V0 when _create_v1_conversation fails."""
         # Mock v1_enabled as True so V1 is attempted
@@ -191,7 +201,7 @@ class TestGithubV1ConversationRouting(TestCase):
         conversation_metadata = MagicMock()
 
         # Call the method
-        await self.github_issue.create_new_conversation(
+        await github_issue.create_new_conversation(
             jinja_env, git_provider_tokens, conversation_metadata
         )
 
