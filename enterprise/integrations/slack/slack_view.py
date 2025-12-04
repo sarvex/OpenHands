@@ -476,7 +476,9 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
 
             # 5. Create the message request
             send_message_request = SendMessageRequest(
-                role='user', content=[TextContent(text=user_msg)]
+                role='user',
+                content=[TextContent(text=user_msg)],
+                run=True
             )
 
             # 6. Send the message to the agent server
