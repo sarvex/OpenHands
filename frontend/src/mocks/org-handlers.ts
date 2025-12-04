@@ -48,7 +48,7 @@ export const ORGS_AND_MEMBERS: Record<string, OrganizationMember[]> = {
     {
       id: "1",
       email: "alice@acme.org",
-      role: "superadmin",
+      role: "owner",
       status: "active",
     },
     {
@@ -82,7 +82,7 @@ export const ORGS_AND_MEMBERS: Record<string, OrganizationMember[]> = {
     {
       id: "6",
       email: "robert@all-hands.dev",
-      role: "superadmin",
+      role: "owner",
       status: "active",
     },
     {
@@ -135,10 +135,10 @@ export const ORG_HANDLERS = [
     let role: OrganizationUserRole = "user";
     switch (orgId) {
       case "1": // Personal Workspace
-        role = "superadmin";
+        role = "owner";
         break;
       case "2": // Acme Corp
-        role = "superadmin";
+        role = "owner";
         break;
       case "3": // Beta LLC
         role = "user";
