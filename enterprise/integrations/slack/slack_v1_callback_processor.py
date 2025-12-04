@@ -90,7 +90,6 @@ class SlackV1CallbackProcessor(EventCallbackProcessor):
     # Slack helpers
     # -------------------------------------------------------------------------
 
-
     def _get_bot_access_token(self):
         slack_team_store = SlackTeamStore.get_instance()
         bot_access_token = slack_team_store.get_team_bot_token(

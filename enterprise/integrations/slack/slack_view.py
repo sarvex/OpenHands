@@ -36,7 +36,7 @@ from openhands.server.services.conversation_service import (
     initialize_conversation,
     setup_init_conversation_settings,
 )
-from openhands.server.shared import ConversationStoreImpl, config, conversation_manager
+from openhands.server.shared import conversation_manager
 from openhands.server.user_auth.user_auth import UserAuth
 from openhands.storage.data_models.conversation_metadata import (
     ConversationMetadata,
@@ -385,7 +385,6 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
 
         return user_message, ''
 
-
     async def send_message_to_v0_conversation(self, jinja: Environment):
         user_info: SlackUser = self.slack_to_openhands_user
         user_id = user_info.keycloak_user_id
@@ -431,16 +430,15 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
             get_httpx_client,
             get_sandbox_service,
         )
-        from openhands.app_server.services.injector import InjectorState
-        from openhands.app_server.user.specifiy_user_context import (
-            ADMIN,
-            USER_CONTEXT_ATTR,
-        )
-        from openhands.core.message import TextContent
         from openhands.app_server.event_callback.util import (
             ensure_conversation_found,
             ensure_running_sandbox,
             get_agent_server_url_from_sandbox,
+        )
+        from openhands.app_server.services.injector import InjectorState
+        from openhands.app_server.user.specifiy_user_context import (
+            ADMIN,
+            USER_CONTEXT_ATTR,
         )
 
         # Create injector state for dependency injection
@@ -478,8 +476,7 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
 
             # 5. Create the message request
             send_message_request = SendMessageRequest(
-                role='user',
-                content=[TextContent(text=user_msg)]
+                role='user', content=[TextContent(text=user_msg)]
             )
 
             # 6. Send the message to the agent server
