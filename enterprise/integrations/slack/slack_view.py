@@ -521,7 +521,7 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
             )
 
         if self.slack_conversation.v1:
-            pass
+            await self.send_message_to_v1_conversation(jinja)
         else:
             await self.send_message_to_v0_conversation(jinja)
 
