@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from uuid import UUID
 
 from integrations.models import Message
 from integrations.resolver_user_context import ResolverUserContext
@@ -454,9 +455,9 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
             # 1. Conversation lookup
             app_conversation_info = ensure_conversation_found(
                 await app_conversation_info_service.get_app_conversation_info(
-                    self.conversation_id
+                    UUID(self.conversation_id)
                 ),
-                self.conversation_id,
+                UUID(self.conversation_id),
             )
 
             # 2. Sandbox lookup + validation
