@@ -74,6 +74,8 @@ export function UserContextMenu({ type, onClose }: UserContextMenuProps) {
       "/settings/organization-members": false,
       "/settings/org": false,
       "/settings/billing": !isTeamOrg,
+      // Hide LLM settings when the feature flag is enabled
+      "/settings": !config?.FEATURE_FLAGS?.HIDE_LLM_SETTINGS,
     };
     return routeVisibility[item.to] ?? true;
   });
