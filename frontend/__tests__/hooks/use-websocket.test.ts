@@ -223,17 +223,24 @@ describe("useWebSocket", () => {
     });
 
     // onMessage handler should have been called for the welcome message
-    expect(onMessageSpy).toHaveBeenCalledOnce();
-
-    // Send another message from the mock server
-    wsLink.broadcast("Hello from server!");
-
     await waitFor(() => {
-      expect(result.current.lastMessage).toBe("Hello from server!");
+      expect(onMessageSpy).toHaveBeenCalledOnce();
     });
 
+    // Send another message from the mock server after ensuring the first message was processed
+    wsLink.broadcast("Hello from server!");
+
+    await waitFor(
+      () => {
+        expect(result.current.lastMessage).toBe("Hello from server!");
+      },
+      { timeout: 5000 },
+    );
+
     // onMessage handler should have been called twice now
-    expect(onMessageSpy).toHaveBeenCalledTimes(2);
+    await waitFor(() => {
+      expect(onMessageSpy).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("should call onError handler when WebSocket encounters an error", async () => {
