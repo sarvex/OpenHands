@@ -308,15 +308,13 @@ class TestLiteLlmManager:
                             assert result is not None
                             assert result.agent == 'CodeActAgent'
                             assert result.llm_model == get_default_litellm_model()
-                            assert (
-                                result.llm_api_key.get_secret_value() == 'test-api-key'
-                            )
+                            assert result.llm_api_key.get_secret_value() == 'test-key'
                             assert result.llm_base_url == 'http://test.com'
 
                             # Verify migration steps were called
                             assert (
-                                mock_client.post.call_count == 6
-                            )  # create_team, delete_user, create_user, add_user_to_team, generate_key
+                                mock_client.post.call_count == 4
+                            )  # create_team, update_user, add_user_to_team, update_key
 
     @pytest.mark.asyncio
     async def test_update_team_and_users_budget_missing_config(self):
