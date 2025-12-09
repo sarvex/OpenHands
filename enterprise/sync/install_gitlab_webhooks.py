@@ -3,7 +3,7 @@ from typing import cast
 from uuid import uuid4
 
 from integrations.types import GitLabResourceType
-from integrations.utils import GITLAB_WEBHOOK_URL
+from server.constants import WEB_HOST
 from storage.gitlab_webhook import GitlabWebhook, WebhookStatus
 from storage.gitlab_webhook_store import GitlabWebhookStore
 
@@ -11,6 +11,7 @@ from openhands.core.logger import openhands_logger as logger
 from openhands.integrations.gitlab.gitlab_service import GitLabServiceImpl
 from openhands.integrations.service_types import GitService
 
+GITLAB_WEBHOOK_URL = f'https://{WEB_HOST}/integration/gitlab/events'
 CHUNK_SIZE = 100
 WEBHOOK_NAME = 'OpenHands Resolver'
 SCOPES: list[str] = [
