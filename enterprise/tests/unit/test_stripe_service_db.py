@@ -14,18 +14,19 @@ from integrations.stripe_service import (
 )
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from storage.base import Base
 from storage.org import Org
-from storage.stripe_customer import Base as StripeCustomerBase
+from storage.org_member import OrgMember
+from storage.role import Role
 from storage.stripe_customer import StripeCustomer
 from storage.user import User
-from storage.user_settings import Base as UserBase
 
 
 @pytest.fixture
 def engine():
     engine = create_engine('sqlite:///:memory:')
-    UserBase.metadata.create_all(engine)
-    StripeCustomerBase.metadata.create_all(engine)
+    # Create all tables using the unified Base
+    Base.metadata.create_all(engine)
     return engine
 
 
@@ -41,14 +42,29 @@ def test_org_and_user(session_maker):
     test_org_id = uuid.uuid4()
 
     with session_maker() as session:
+        # Create role first
+        role = Role(name='test-role', rank=1)
+        session.add(role)
+        session.flush()
+
         # Create org
         org = Org(id=test_org_id, name='test-org', contact_email='testy@tester.com')
         session.add(org)
         session.flush()
 
         # Create user with current_org_id
-        user = User(id=test_user_id, current_org_id=test_org_id)
+        user = User(id=test_user_id, current_org_id=test_org_id, role_id=role.id)
         session.add(user)
+        session.flush()
+
+        # Create org member relationship
+        org_member = OrgMember(
+            org_id=test_org_id,
+            user_id=test_user_id,
+            role_id=role.id,
+            llm_api_key='test-key',
+        )
+        session.add(org_member)
         session.commit()
 
     return test_user_id, test_org_id
@@ -74,15 +90,26 @@ async def test_find_customer_id_by_user_id_checks_db_first(
         )
         session.commit()
 
+    # Create a mock org object to return from OrgStore
+    mock_org = MagicMock()
+    mock_org.id = test_org_id
+
     with (
         patch('integrations.stripe_service.session_maker', session_maker),
         patch('storage.org_store.session_maker', session_maker),
+        patch('integrations.stripe_service.call_sync_from_async') as mock_call_sync,
     ):
+        # Mock the call_sync_from_async to return the org
+        mock_call_sync.return_value = mock_org
+
         # Call the function
         result = await find_customer_id_by_user_id(str(test_user_id))
 
         # Verify the result
         assert result == 'cus_test123'
+
+        # Verify that call_sync_from_async was called with the correct function
+        mock_call_sync.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -97,11 +124,19 @@ async def test_find_customer_id_by_user_id_falls_back_to_stripe(
     mock_customer = stripe.Customer(id='cus_test123')
     mock_search = AsyncMock(return_value=MagicMock(data=[mock_customer]))
 
+    # Create a mock org object to return from OrgStore
+    mock_org = MagicMock()
+    mock_org.id = test_org_id
+
     with (
         patch('integrations.stripe_service.session_maker', session_maker),
         patch('storage.org_store.session_maker', session_maker),
         patch('stripe.Customer.search_async', mock_search),
+        patch('integrations.stripe_service.call_sync_from_async') as mock_call_sync,
     ):
+        # Mock the call_sync_from_async to return the org
+        mock_call_sync.return_value = mock_org
+
         # Call the function
         result = await find_customer_id_by_user_id(str(test_user_id))
 
@@ -125,12 +160,21 @@ async def test_create_customer_stores_id_in_db(session_maker, test_org_and_user)
     mock_search = AsyncMock(return_value=MagicMock(data=[]))
     mock_create_async = AsyncMock(return_value=stripe.Customer(id='cus_test123'))
 
+    # Create a mock org object to return from OrgStore
+    mock_org = MagicMock()
+    mock_org.id = test_org_id
+    mock_org.contact_email = 'testy@tester.com'
+
     with (
         patch('integrations.stripe_service.session_maker', session_maker),
         patch('storage.org_store.session_maker', session_maker),
         patch('stripe.Customer.search_async', mock_search),
         patch('stripe.Customer.create_async', mock_create_async),
+        patch('integrations.stripe_service.call_sync_from_async') as mock_call_sync,
     ):
+        # Mock the call_sync_from_async to return the org
+        mock_call_sync.return_value = mock_org
+
         # Call the function
         result = await find_or_create_customer_by_user_id(str(test_user_id))
 
