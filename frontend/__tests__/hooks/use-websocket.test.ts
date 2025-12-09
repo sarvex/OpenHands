@@ -35,8 +35,8 @@ describe.sequential("useWebSocket", () => {
   afterEach(() => {
     // Clean up React components to close WebSocket connections
     cleanup();
-    // Clear all tracked WebSocket clients to prevent cross-test contamination
-    wsLink.clients.forEach((client) => client.close());
+    // Clear tracked WebSocket clients WITHOUT calling close() to avoid
+    // sending CloseEvents that can leak to the next test
     wsLink.clients.clear();
   });
 
