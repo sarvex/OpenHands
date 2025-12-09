@@ -32,9 +32,17 @@ describe("useWebSocket", () => {
   });
 
   // Clean up after each test to prevent cross-test contamination
-  afterEach(() => {
+  afterEach(async () => {
     // Unmount any rendered hooks to trigger their cleanup effects (closes WebSocket connections)
     cleanup();
+    // Clear all tracked WebSocket clients to prevent cross-test message leaks
+    // This is necessary because wsLink is a singleton and clients persist across tests
+    wsLink.clients.forEach((client) => client.close());
+    wsLink.clients.clear();
+    // Small delay to ensure WebSocket cleanup completes before next test starts
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 10);
+    });
   });
 
   it("should establish a WebSocket connection", async () => {
