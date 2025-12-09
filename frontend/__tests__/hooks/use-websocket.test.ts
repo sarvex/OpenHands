@@ -32,12 +32,16 @@ describe.sequential("useWebSocket", () => {
     server.use(wsHandler);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Clean up React components to close WebSocket connections
     cleanup();
     // Clear tracked WebSocket clients WITHOUT calling close() to avoid
     // sending CloseEvents that can leak to the next test
     wsLink.clients.clear();
+    // Wait for any pending async events to settle before next test
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 0);
+    });
   });
 
   it("should establish a WebSocket connection", async () => {
