@@ -38,8 +38,9 @@ describe.sequential("useWebSocket", () => {
     // sending CloseEvents that can leak to the next test
     wsLink.clients.clear();
     // Wait for any pending async events to settle before next test
+    // Using 100ms delay to ensure CI (which is slower) has time to process all events
     await new Promise<void>((resolve) => {
-      setTimeout(resolve, 0);
+      setTimeout(resolve, 100);
     });
   });
 
