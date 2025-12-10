@@ -220,7 +220,7 @@ async def test_keycloak_callback_success_with_valid_offline_token(mock_request):
             secure=False,
             accepted_tos=True,
         )
-        mock_posthog.identify.assert_called_once()
+        mock_posthog.set.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -287,7 +287,7 @@ async def test_keycloak_callback_success_without_offline_token(mock_request):
             secure=False,
             accepted_tos=True,
         )
-        mock_posthog.identify.assert_called_once()
+        mock_posthog.set.assert_called_once()
 
 
 @pytest.mark.asyncio
