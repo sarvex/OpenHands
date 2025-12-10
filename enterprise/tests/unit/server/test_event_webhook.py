@@ -267,8 +267,9 @@ class TestUpdateConversationMetadata:
 
         # Import the module and patch the session_maker at the module level
         import server.utils.conversation_callback_utils as callback_utils
+
         original_session_maker = callback_utils.session_maker
-        
+
         try:
             callback_utils.session_maker = session_maker_with_minimal_fixtures
             update_conversation_metadata('mock-conversation-id', content)
@@ -300,8 +301,9 @@ class TestUpdateConversationMetadata:
 
         # Import the module and patch the session_maker at the module level
         import server.utils.conversation_callback_utils as callback_utils
+
         original_session_maker = callback_utils.session_maker
-        
+
         try:
             callback_utils.session_maker = session_maker_with_minimal_fixtures
             update_conversation_metadata('mock-conversation-id', content)
@@ -333,8 +335,9 @@ class TestUpdateConversationMetadata:
 
         # Import the module and patch the session_maker at the module level
         import server.utils.conversation_callback_utils as callback_utils
+
         original_session_maker = callback_utils.session_maker
-        
+
         try:
             callback_utils.session_maker = session_maker_with_minimal_fixtures
             update_conversation_metadata('mock-conversation-id', content)
@@ -390,8 +393,9 @@ class TestOnWrite:
 
         # Import the module and patch the session_maker at the module level
         import server.utils.conversation_callback_utils as callback_utils
+
         original_session_maker = callback_utils.session_maker
-        
+
         try:
             with patch(
                 'server.routes.event_webhook.session_maker',
@@ -621,8 +625,9 @@ class TestProcessBatchOperationsBackground:
 
         # Import the module and patch the session_maker at the module level
         import server.utils.conversation_callback_utils as callback_utils
+
         original_session_maker = callback_utils.session_maker
-        
+
         try:
             with patch(
                 'server.routes.event_webhook.session_maker',
@@ -702,8 +707,9 @@ class TestProcessBatchOperationsBackground:
 
         # Import the module and patch the session_maker at the module level
         import server.utils.conversation_callback_utils as callback_utils
+
         original_session_maker = callback_utils.session_maker
-        
+
         try:
             with patch(
                 'server.routes.event_webhook.session_maker',
