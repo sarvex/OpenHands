@@ -1,3 +1,4 @@
+from openhands.events.event import RecallType
 from openhands.events.observation.agent import (
     AgentCondensationObservation,
     AgentStateChangedObservation,
@@ -46,14 +47,9 @@ __all__ = [
     'UserRejectObservation',
     'AgentCondensationObservation',
     'RecallObservation',
-    'RecallType',  # exported name — imported lazily below
+    'RecallType',
     'LoopDetectionObservation',
     'MCPObservation',
     'FileDownloadObservation',
     'TaskTrackingObservation',
 ]
-
-# ------------------------------------------------------
-# Lazy import to avoid circular import with event.py
-# ------------------------------------------------------
-from openhands.events.event import RecallType  # noqa: E402
