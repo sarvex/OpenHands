@@ -1,7 +1,7 @@
 """Unit tests for get_user_v1_enabled_setting function."""
 
 import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from integrations.github.github_view import get_user_v1_enabled_setting

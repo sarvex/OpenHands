@@ -84,7 +84,7 @@ def calculate_credits(user_info: LiteLlmUserInfo) -> float:
     return max(max_budget - spend, 0.0)
 
 
-# Endpoint to retrieve user's current credit balance
+# Endpoint to retrieve the current organization's credit balance
 @billing_router.get('/credits')
 async def get_credits(user_id: str = Depends(get_user_id)) -> GetCreditsResponse:
     if not stripe_service.STRIPE_API_KEY:
