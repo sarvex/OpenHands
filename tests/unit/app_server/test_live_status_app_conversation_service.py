@@ -21,8 +21,8 @@ from openhands.app_server.sandbox.sandbox_models import (
 from openhands.app_server.user.user_context import UserContext
 from openhands.integrations.provider import ProviderType
 from openhands.sdk import Agent
-from openhands.sdk.conversation.secret_source import LookupSecret, StaticSecret
 from openhands.sdk.llm import LLM
+from openhands.sdk.secret import LookupSecret, StaticSecret
 from openhands.sdk.workspace import LocalWorkspace
 from openhands.sdk.workspace.remote.async_remote_workspace import AsyncRemoteWorkspace
 from openhands.server.types import AppMode
@@ -299,7 +299,7 @@ class TestLiveStatusAppConversationService:
         )
 
         # Assert
-        assert llm.base_url is None
+        assert llm.base_url == 'https://llm-proxy.app.all-hands.dev/'
 
     @pytest.mark.asyncio
     async def test_configure_llm_and_mcp_non_openhands_model_ignores_provider(self):
@@ -830,6 +830,7 @@ class TestLiveStatusAppConversationService:
             'Test suffix',
             mock_mcp_config,
             self.mock_user.condenser_max_size,
+            secrets=mock_secrets,
         )
         self.service._finalize_conversation_request.assert_called_once()
 
