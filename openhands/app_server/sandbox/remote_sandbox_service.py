@@ -64,6 +64,10 @@ STATUS_MAPPING = {
     'starting': SandboxStatus.STARTING,
     'error': SandboxStatus.ERROR,
 }
+AGENT_SERVER_PORT = 60000
+VSCODE_PORT = 60001
+WORKER_1_PORT = 12000
+WORKER_2_PORT = 12001
 
 
 class StoredRemoteSandbox(Base):  # type: ignore
@@ -138,17 +142,29 @@ class RemoteSandboxService(SandboxService):
                 exposed_urls = []
                 url = runtime.get('url', None)
                 if url:
-                    exposed_urls.append(ExposedUrl(name=AGENT_SERVER, url=url))
+                    exposed_urls.append(
+                        ExposedUrl(name=AGENT_SERVER, url=url, port=AGENT_SERVER_PORT)
+                    )
                     vscode_url = (
                         _build_service_url(url, 'vscode')
                         + f'/?tkn={session_api_key}&folder=%2Fworkspace%2Fproject'
                     )
-                    exposed_urls.append(ExposedUrl(name=VSCODE, url=vscode_url))
                     exposed_urls.append(
-                        ExposedUrl(name=WORKER_1, url=_build_service_url(url, 'work-1'))
+                        ExposedUrl(name=VSCODE, url=vscode_url, port=VSCODE_PORT)
                     )
                     exposed_urls.append(
-                        ExposedUrl(name=WORKER_2, url=_build_service_url(url, 'work-2'))
+                        ExposedUrl(
+                            name=WORKER_1,
+                            url=_build_service_url(url, 'work-1'),
+                            port=WORKER_1_PORT,
+                        )
+                    )
+                    exposed_urls.append(
+                        ExposedUrl(
+                            name=WORKER_2,
+                            url=_build_service_url(url, 'work-2'),
+                            port=WORKER_2_PORT,
+                        )
                     )
             else:
                 exposed_urls = None
@@ -224,9 +240,7 @@ class RemoteSandboxService(SandboxService):
 
         # If a public facing url is defined, add a callback to the agent server environment.
         if self.web_url:
-            environment[WEBHOOK_CALLBACK_VARIABLE] = (
-                f'{self.web_url}/api/v1/webhooks/{sandbox_id}'
-            )
+            environment[WEBHOOK_CALLBACK_VARIABLE] = f'{self.web_url}/api/v1/webhooks'
             # We specify CORS settings only if there is a public facing url - otherwise
             # we are probably in local development and the only url in use is localhost
             environment[ALLOW_CORS_ORIGINS_VARIABLE] = self.web_url
@@ -284,6 +298,27 @@ class RemoteSandboxService(SandboxService):
         if stored_sandbox is None:
             return None
         return await self._to_sandbox_info(stored_sandbox)
+
+    async def get_sandbox_by_session_api_key(
+        self, session_api_key: str
+    ) -> Union[SandboxInfo, None]:
+        """Get a single sandbox by session API key."""
+        # Get all stored sandboxes for the current user
+        stmt = await self._secure_select()
+        result = await self.db_session.execute(stmt)
+        stored_sandboxes = result.scalars().all()
+
+        # Check each sandbox's runtime data for matching session_api_key
+        for stored_sandbox in stored_sandboxes:
+            try:
+                runtime = await self._get_runtime(stored_sandbox.id)
+                if runtime and runtime.get('session_api_key') == session_api_key:
+                    return await self._to_sandbox_info(stored_sandbox, runtime)
+            except Exception:
+                # Continue checking other sandboxes if one fails
+                continue
+
+        return None
 
     async def start_sandbox(self, sandbox_spec_id: str | None = None) -> SandboxInfo:
         """Start a new sandbox by creating a remote runtime."""
