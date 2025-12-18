@@ -16,6 +16,7 @@ interface DropdownProps {
   disabled?: boolean;
   placeholder?: string;
   defaultValue?: DropdownOption;
+  onChange?: (item: DropdownOption | null) => void;
 }
 
 export function Dropdown({
@@ -26,6 +27,7 @@ export function Dropdown({
   disabled = false,
   placeholder,
   defaultValue,
+  onChange,
 }: DropdownProps) {
   const [inputValue, setInputValue] = useState(defaultValue?.label ?? "");
 
@@ -49,6 +51,9 @@ export function Dropdown({
       setInputValue(newValue ?? "");
     },
     defaultSelectedItem: defaultValue,
+    onSelectedItemChange: ({ selectedItem: newSelectedItem }) => {
+      onChange?.(newSelectedItem ?? null);
+    },
     onIsOpenChange: ({
       isOpen: newIsOpen,
       selectedItem: currentSelectedItem,

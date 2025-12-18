@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect } from "vitest";
-import { Dropdown } from "#/components/ui/dropdown/dropdown";
+import { describe, it, expect, vi } from "vitest";
+import { Dropdown } from "#/ui/dropdown/dropdown";
 
 const mockOptions = [
   { value: "1", label: "Option 1" },
@@ -310,8 +310,35 @@ describe("Dropdown", () => {
   });
 
   describe("onChange", () => {
-    it.todo("should call onChange with selected item when option is clicked");
-    it.todo("should call onChange with null when selection is cleared");
+    it("should call onChange with selected item when option is clicked", async () => {
+      const user = userEvent.setup();
+      const onChangeMock = vi.fn();
+      render(<Dropdown options={mockOptions} onChange={onChangeMock} />);
+
+      const trigger = screen.getByTestId("dropdown-trigger");
+      await user.click(trigger);
+      await user.click(screen.getByRole("option", { name: "Option 1" }));
+
+      expect(onChangeMock).toHaveBeenCalledWith(mockOptions[0]);
+    });
+
+    it("should call onChange with null when selection is cleared", async () => {
+      const user = userEvent.setup();
+      const onChangeMock = vi.fn();
+      render(
+        <Dropdown
+          options={mockOptions}
+          clearable
+          defaultValue={mockOptions[0]}
+          onChange={onChangeMock}
+        />,
+      );
+
+      const clearButton = screen.getByTestId("dropdown-clear");
+      await user.click(clearButton);
+
+      expect(onChangeMock).toHaveBeenCalledWith(null);
+    });
   });
 
   describe("Controlled mode", () => {
