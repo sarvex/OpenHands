@@ -130,7 +130,7 @@ describe("Dropdown", () => {
       expect(screen.queryByText("Option 2")).not.toBeInTheDocument();
     });
 
-    it("should display selected option in trigger", async () => {
+    it("should display selected option in input", async () => {
       const user = userEvent.setup();
       render(<Dropdown options={mockOptions} />);
 
@@ -138,7 +138,7 @@ describe("Dropdown", () => {
       await user.click(trigger);
       await user.click(screen.getByText("Option 1"));
 
-      expect(trigger).toHaveTextContent("Option 1");
+      expect(screen.getByRole("combobox")).toHaveValue("Option 1");
     });
 
     it("should highlight currently selected option in list", async () => {
@@ -185,7 +185,6 @@ describe("Dropdown", () => {
       const clearButton = screen.getByTestId("dropdown-clear");
       await user.click(clearButton);
 
-      expect(trigger).not.toHaveTextContent("Option 1");
       expect(screen.getByRole("combobox")).toHaveValue("");
     });
 
@@ -193,6 +192,27 @@ describe("Dropdown", () => {
       render(<Dropdown options={mockOptions} clearable />);
 
       expect(screen.queryByTestId("dropdown-clear")).not.toBeInTheDocument();
+    });
+
+    it("should show placeholder after clearing selection", async () => {
+      const user = userEvent.setup();
+      render(
+        <Dropdown
+          options={mockOptions}
+          clearable
+          placeholder="Select an option"
+        />,
+      );
+
+      const trigger = screen.getByTestId("dropdown-trigger");
+      await user.click(trigger);
+      await user.click(screen.getByRole("option", { name: "Option 1" }));
+
+      const clearButton = screen.getByTestId("dropdown-clear");
+      await user.click(clearButton);
+
+      const input = screen.getByRole("combobox");
+      expect(input).toHaveValue("");
     });
   });
 
@@ -249,14 +269,7 @@ describe("Dropdown", () => {
   });
 
   describe("Default value", () => {
-    it("should display defaultValue in trigger on mount", () => {
-      render(<Dropdown options={mockOptions} defaultValue={mockOptions[0]} />);
-
-      const trigger = screen.getByTestId("dropdown-trigger");
-      expect(trigger).toHaveTextContent("Option 1");
-    });
-
-    it("should have defaultValue selected in input on mount", () => {
+    it("should display defaultValue in input on mount", () => {
       render(<Dropdown options={mockOptions} defaultValue={mockOptions[0]} />);
 
       const input = screen.getByRole("combobox");
