@@ -11,28 +11,68 @@ const MOCK_ME: Omit<OrganizationMember, "role"> = {
   status: "active",
 };
 
+export const createMockOrganization = (
+  id: string,
+  name: string,
+  credits: number,
+  is_personal?: boolean,
+): Organization => ({
+  id,
+  name,
+  contact_name: "Contact Name",
+  contact_email: "contact@example.com",
+  conversation_expiration: 86400,
+  agent: "default-agent",
+  default_max_iterations: 20,
+  security_analyzer: "standard",
+  confirmation_mode: false,
+  default_llm_model: "gpt-5-1",
+  default_llm_api_key_for_byor: "*********",
+  default_llm_base_url: "https://api.example-llm.com",
+  remote_runtime_resource_factor: 2,
+  enable_default_condenser: true,
+  billing_margin: 0.15,
+  enable_proactive_conversation_starters: true,
+  sandbox_base_container_image: "ghcr.io/example/sandbox-base:latest",
+  sandbox_runtime_container_image: "ghcr.io/example/sandbox-runtime:latest",
+  org_version: 0,
+  mcp_config: {
+    tools: [],
+    settings: {},
+  },
+  search_api_key: null,
+  sandbox_api_key: null,
+  max_budget_per_task: 25.0,
+  enable_solvability_analysis: false,
+  v1_enabled: true,
+  credits,
+  is_personal,
+});
+
+// Named mock organizations for test convenience
+export const MOCK_PERSONAL_ORG = createMockOrganization(
+  "1",
+  "Personal Workspace",
+  100,
+  true,
+);
+export const MOCK_TEAM_ORG_ACME = createMockOrganization(
+  "2",
+  "Acme Corp",
+  1000,
+);
+export const MOCK_TEAM_ORG_BETA = createMockOrganization("3", "Beta LLC", 500);
+export const MOCK_TEAM_ORG_ALLHANDS = createMockOrganization(
+  "4",
+  "All Hands AI",
+  750,
+);
+
 export const INITIAL_MOCK_ORGS: Organization[] = [
-  {
-    id: "1",
-    name: "Personal Workspace",
-    balance: 100,
-    is_personal: true,
-  },
-  {
-    id: "2",
-    name: "Acme Corp",
-    balance: 1000,
-  },
-  {
-    id: "3",
-    name: "Beta LLC",
-    balance: 500,
-  },
-  {
-    id: "4",
-    name: "All Hands AI",
-    balance: 750,
-  },
+  MOCK_PERSONAL_ORG,
+  MOCK_TEAM_ORG_ACME,
+  MOCK_TEAM_ORG_BETA,
+  MOCK_TEAM_ORG_ALLHANDS,
 ];
 
 const INITIAL_MOCK_MEMBERS: Record<string, OrganizationMember[]> = {
@@ -332,7 +372,7 @@ export const ORG_HANDLERS = [
   }),
 
   http.post(
-    "/api/organizations/:orgId/invite/batch",
+    "/api/organizations/:orgId/members/invite",
     async ({ request, params }) => {
       const { emails } = (await request.json()) as { emails: string[] };
       const orgId = params.orgId?.toString();

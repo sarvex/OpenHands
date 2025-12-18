@@ -6,7 +6,11 @@ import { MemoryRouter } from "react-router";
 import { UserContextMenu } from "#/components/features/user/user-context-menu";
 import { organizationService } from "#/api/organization-service/organization-service.api";
 import { GetComponentPropTypes } from "#/utils/get-component-prop-types";
-import { INITIAL_MOCK_ORGS } from "#/mocks/org-handlers";
+import {
+  INITIAL_MOCK_ORGS,
+  MOCK_PERSONAL_ORG,
+  MOCK_TEAM_ORG_ACME,
+} from "#/mocks/org-handlers";
 import AuthService from "#/api/auth-service/auth-service.api";
 import { SAAS_NAV_ITEMS, OSS_NAV_ITEMS } from "#/constants/settings-nav";
 import OptionService from "#/api/option-service/option-service.api";
@@ -74,8 +78,7 @@ describe("UserContextMenu", () => {
     // Verify that navigation items are rendered (except organization-members/org which are filtered out)
     SAAS_NAV_ITEMS.filter(
       (item) =>
-        item.to !== "/settings/organization-members" &&
-        item.to !== "/settings/org",
+        item.to !== "/settings/org-members" && item.to !== "/settings/org",
     ).forEach((item) => {
       expect(screen.getByText(item.text)).toBeInTheDocument();
     });
@@ -238,7 +241,7 @@ describe("UserContextMenu", () => {
     expect(integrationsLink).toHaveAttribute("href", "/settings/integrations");
   });
 
-  it("should navigate to /settings/organization-members when Manage Organization Members is clicked", async () => {
+  it("should navigate to /settings/org-members when Manage Organization Members is clicked", async () => {
     renderUserContextMenu({ type: "admin", onClose: vi.fn });
 
     const manageOrganizationMembersButton = screen.getByText(
@@ -247,7 +250,7 @@ describe("UserContextMenu", () => {
     await userEvent.click(manageOrganizationMembersButton);
 
     expect(navigateMock).toHaveBeenCalledExactlyOnceWith(
-      "/settings/organization-members",
+      "/settings/org-members",
     );
   });
 
@@ -278,7 +281,7 @@ describe("UserContextMenu", () => {
   it("should call the onClose handler after each action", async () => {
     // Mock a team org so org management buttons are visible
     vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
-      { id: "2", name: "Acme Corp", balance: 1000 },
+      MOCK_TEAM_ORG_ACME,
     ]);
 
     const onCloseMock = vi.fn();
@@ -303,7 +306,7 @@ describe("UserContextMenu", () => {
   describe("Personal org vs team org visibility", () => {
     it("should not show Organization and Organization Members settings items when personal org is selected", async () => {
       vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
-        { id: "1", name: "Personal Workspace", balance: 100, is_personal: true },
+        MOCK_PERSONAL_ORG,
       ]);
       vi.spyOn(organizationService, "getMe").mockResolvedValue({
         id: "99",
@@ -325,7 +328,7 @@ describe("UserContextMenu", () => {
 
     it("should not show Billing settings item when team org is selected", async () => {
       vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
-        { id: "2", name: "Acme Corp", balance: 1000 },
+        MOCK_TEAM_ORG_ACME,
       ]);
       vi.spyOn(organizationService, "getMe").mockResolvedValue({
         id: "99",

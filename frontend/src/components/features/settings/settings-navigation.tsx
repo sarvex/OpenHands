@@ -88,7 +88,7 @@ export function SettingsNavigation({
             .filter((navItem) => {
               const canViewOrgRoutes = !isUser && !!orgId && !isPersonalOrg;
               const routeVisibility: Record<string, boolean> = {
-                "/settings/organization-members": canViewOrgRoutes,
+                "/settings/org-members": canViewOrgRoutes,
                 "/settings/org": canViewOrgRoutes,
                 "/settings/billing": !isTeamOrg,
                 "/settings": !config?.FEATURE_FLAGS?.HIDE_LLM_SETTINGS,

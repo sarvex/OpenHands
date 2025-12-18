@@ -71,7 +71,7 @@ export function UserContextMenu({ type, onClose }: UserContextMenuProps) {
   const navItems = (isOss ? OSS_NAV_ITEMS : SAAS_NAV_ITEMS).filter((item) => {
     const routeVisibility: Record<string, boolean> = {
       // Org routes are handled separately in this menu (not shown in nav items)
-      "/settings/organization-members": false,
+      "/settings/org-members": false,
       "/settings/org": false,
       "/settings/billing": !isTeamOrg,
       // Hide LLM settings when the feature flag is enabled
@@ -95,7 +95,7 @@ export function UserContextMenu({ type, onClose }: UserContextMenuProps) {
   };
 
   const handleManageOrganizationMembersClick = () => {
-    navigate("/settings/organization-members");
+    navigate("/settings/org-members");
     onClose();
   };
 

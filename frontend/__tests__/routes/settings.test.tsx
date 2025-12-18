@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import SettingsScreen, { clientLoader } from "#/routes/settings";
 import OptionService from "#/api/option-service/option-service.api";
 import { organizationService } from "#/api/organization-service/organization-service.api";
+import { MOCK_PERSONAL_ORG, MOCK_TEAM_ORG_ACME } from "#/mocks/org-handlers";
 
 // Mock the i18next hook
 vi.mock("react-i18next", async () => {
@@ -207,12 +208,7 @@ describe("Settings Screen", () => {
   describe("Personal org vs team org visibility", () => {
     it("should not show Organization and Organization Members settings items when personal org is selected", async () => {
       vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
-        {
-          id: "1",
-          name: "Personal Workspace",
-          balance: 100,
-          is_personal: true,
-        },
+        MOCK_PERSONAL_ORG,
       ]);
       vi.spyOn(organizationService, "getMe").mockResolvedValue({
         id: "99",
@@ -240,7 +236,7 @@ describe("Settings Screen", () => {
       mockQueryClient.setQueryData(["config"], { APP_MODE: "saas" });
 
       vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
-        { id: "2", name: "Acme Corp", balance: 1000 },
+        MOCK_TEAM_ORG_ACME,
       ]);
       vi.spyOn(organizationService, "getMe").mockResolvedValue({
         id: "99",
@@ -263,26 +259,11 @@ describe("Settings Screen", () => {
 
     it("should not allow direct URL access to /settings/org when personal org is selected", async () => {
       // Set up orgs in query client so clientLoader can access them
-      mockQueryClient.setQueryData(
-        ["organizations"],
-        [
-          {
-            id: "1",
-            name: "Personal Workspace",
-            balance: 100,
-            is_personal: true,
-          },
-        ],
-      );
+      mockQueryClient.setQueryData(["organizations"], [MOCK_PERSONAL_ORG]);
       mockQueryClient.setQueryData(["selected_organization"], "1");
 
       vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
-        {
-          id: "1",
-          name: "Personal Workspace",
-          balance: 100,
-          is_personal: true,
-        },
+        MOCK_PERSONAL_ORG,
       ]);
       vi.spyOn(organizationService, "getMe").mockResolvedValue({
         id: "99",
@@ -303,26 +284,11 @@ describe("Settings Screen", () => {
 
     it("should not allow direct URL access to /settings/organization-members when personal org is selected", async () => {
       // Set up orgs in query client so clientLoader can access them
-      mockQueryClient.setQueryData(
-        ["organizations"],
-        [
-          {
-            id: "1",
-            name: "Personal Workspace",
-            balance: 100,
-            is_personal: true,
-          },
-        ],
-      );
+      mockQueryClient.setQueryData(["organizations"], [MOCK_PERSONAL_ORG]);
       mockQueryClient.setQueryData(["selected_organization"], "1");
 
       vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
-        {
-          id: "1",
-          name: "Personal Workspace",
-          balance: 100,
-          is_personal: true,
-        },
+        MOCK_PERSONAL_ORG,
       ]);
       vi.spyOn(organizationService, "getMe").mockResolvedValue({
         id: "99",
@@ -343,14 +309,11 @@ describe("Settings Screen", () => {
 
     it("should not allow direct URL access to /settings/billing when team org is selected", async () => {
       // Set up orgs in query client so clientLoader can access them
-      mockQueryClient.setQueryData(
-        ["organizations"],
-        [{ id: "2", name: "Acme Corp", balance: 1000 }],
-      );
+      mockQueryClient.setQueryData(["organizations"], [MOCK_TEAM_ORG_ACME]);
       mockQueryClient.setQueryData(["selected_organization"], "2");
 
       vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
-        { id: "2", name: "Acme Corp", balance: 1000 },
+        MOCK_TEAM_ORG_ACME,
       ]);
       vi.spyOn(organizationService, "getMe").mockResolvedValue({
         id: "99",

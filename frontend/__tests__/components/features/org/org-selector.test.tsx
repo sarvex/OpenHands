@@ -4,6 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { OrgSelector } from "#/components/features/org/org-selector";
 import { organizationService } from "#/api/organization-service/organization-service.api";
+import {
+  MOCK_PERSONAL_ORG,
+  MOCK_TEAM_ORG_ACME,
+  createMockOrganization,
+} from "#/mocks/org-handlers";
 
 vi.mock("react-router", () => ({
   useRevalidator: () => ({ revalidate: vi.fn() }),
@@ -32,8 +37,8 @@ describe("OrgSelector", () => {
 
   it("should select the first organization after orgs are loaded", async () => {
     vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
-      { id: "1", name: "Personal Workspace", balance: 100 },
-      { id: "2", name: "Acme Corp", balance: 1000 },
+      MOCK_PERSONAL_ORG,
+      MOCK_TEAM_ORG_ACME,
     ]);
 
     renderOrgSelector();
@@ -47,9 +52,9 @@ describe("OrgSelector", () => {
   it("should show all options when the clear button is pressed", async () => {
     const user = userEvent.setup();
     vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
-      { id: "1", name: "Personal Workspace", balance: 100 },
-      { id: "2", name: "Acme Corp", balance: 1000 },
-      { id: "3", name: "Test Organization", balance: 500 },
+      MOCK_PERSONAL_ORG,
+      MOCK_TEAM_ORG_ACME,
+      createMockOrganization("3", "Test Organization", 500),
     ]);
 
     renderOrgSelector();

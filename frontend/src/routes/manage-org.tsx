@@ -1,6 +1,5 @@
 import React from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { redirect, useNavigate } from "react-router";
+import { redirect } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useCreateStripeCheckoutSession } from "#/hooks/mutation/stripe/use-create-stripe-checkout-session";
 import { useOrganization } from "#/hooks/query/use-organization";
@@ -8,7 +7,6 @@ import { useOrganizationPaymentInfo } from "#/hooks/query/use-organization-payme
 import { ModalBackdrop } from "#/components/shared/modals/modal-backdrop";
 import { cn } from "#/utils/utils";
 import { organizationService } from "#/api/organization-service/organization-service.api";
-import { useSelectedOrganizationId } from "#/context/use-selected-organization";
 import { SettingsInput } from "#/components/features/settings/settings-input";
 import { BrandButton } from "#/components/features/settings/brand-button";
 import { useMe } from "#/hooks/query/use-me";
@@ -19,6 +17,9 @@ import {
 } from "#/utils/query-client-getters";
 import { queryClient } from "#/query-client-config";
 import { I18nKey } from "#/i18n/declaration";
+import { amountIsValid } from "#/utils/amount-is-valid";
+import { useUpdateOrganization } from "#/hooks/mutation/use-update-organization";
+import { useDeleteOrganization } from "#/hooks/mutation/use-delete-organization";
 
 function TempChip({
   children,
@@ -86,15 +87,7 @@ interface ChangeOrgNameModalProps {
 
 function ChangeOrgNameModal({ onClose }: ChangeOrgNameModalProps) {
   const { t } = useTranslation();
-  const { orgId } = useSelectedOrganizationId();
-  const qClient = useQueryClient();
-
-  const { mutate: updateOrganization } = useMutation({
-    mutationFn: (name: string) => {
-      if (!orgId) throw new Error("Organization ID is required");
-      return organizationService.updateOrganization({ orgId, name });
-    },
-  });
+  const { mutate: updateOrganization } = useUpdateOrganization();
 
   const formAction = (formData: FormData) => {
     const orgName = formData.get("org-name")?.toString();
@@ -102,7 +95,6 @@ function ChangeOrgNameModal({ onClose }: ChangeOrgNameModalProps) {
     if (orgName?.trim()) {
       updateOrganization(orgName, {
         onSuccess: () => {
-          qClient.invalidateQueries({ queryKey: ["organizations", orgId] });
           onClose();
         },
       });
@@ -152,20 +144,7 @@ function DeleteOrgConfirmationModal({
   onClose,
 }: DeleteOrgConfirmationModalProps) {
   const { t } = useTranslation();
-  const qClient = useQueryClient();
-  const navigate = useNavigate();
-  const { orgId, setOrgId } = useSelectedOrganizationId();
-  const { mutate: deleteOrganization } = useMutation({
-    mutationFn: () => {
-      if (!orgId) throw new Error("Organization ID is required");
-      return organizationService.deleteOrganization({ orgId });
-    },
-    onSuccess: () => {
-      qClient.invalidateQueries({ queryKey: ["organizations"] });
-      setOrgId(null);
-      navigate("/");
-    },
-  });
+  const { mutate: deleteOrganization } = useDeleteOrganization();
 
   return (
     <div data-testid="delete-org-confirmation">
@@ -191,13 +170,53 @@ function AddCreditsModal({ onClose }: AddCreditsModalProps) {
   const { t } = useTranslation();
   const { mutate: addBalance } = useCreateStripeCheckoutSession();
 
+  const [inputValue, setInputValue] = React.useState("");
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+
+  const getErrorMessage = (value: string): string | null => {
+    if (!value.trim()) return null;
+
+    const numValue = parseInt(value, 10);
+    if (Number.isNaN(numValue)) {
+      return t(I18nKey.PAYMENT$ERROR_INVALID_NUMBER);
+    }
+    if (numValue < 0) {
+      return t(I18nKey.PAYMENT$ERROR_NEGATIVE_AMOUNT);
+    }
+    if (numValue < 10) {
+      return t(I18nKey.PAYMENT$ERROR_MINIMUM_AMOUNT);
+    }
+    if (numValue > 25000) {
+      return t(I18nKey.PAYMENT$ERROR_MAXIMUM_AMOUNT);
+    }
+    if (numValue !== parseFloat(value)) {
+      return t(I18nKey.PAYMENT$ERROR_MUST_BE_WHOLE_NUMBER);
+    }
+    return null;
+  };
+
   const formAction = (formData: FormData) => {
     const amount = formData.get("amount")?.toString();
 
     if (amount?.trim()) {
+      if (!amountIsValid(amount)) {
+        const error = getErrorMessage(amount);
+        setErrorMessage(error || "Invalid amount");
+        return;
+      }
+
       const intValue = parseInt(amount, 10);
+
       addBalance({ amount: intValue }, { onSuccess: onClose });
+
+      setErrorMessage(null);
     }
+  };
+
+  const handleAmountInputChange = (value: string) => {
+    setInputValue(value);
+    // Clear error message when user starts typing again
+    setErrorMessage(null);
   };
 
   return (
@@ -205,7 +224,8 @@ function AddCreditsModal({ onClose }: AddCreditsModalProps) {
       <form
         data-testid="add-credits-form"
         action={formAction}
-        className="w-sm rounded-xl bg-[#171717] flex flex-col p-6 gap-6"
+        noValidate
+        className="w-md rounded-xl bg-[#171717] flex flex-col p-6 gap-6"
       >
         <div className="flex flex-col gap-2">
           <h3 className="text-xl font-semibold">
@@ -216,7 +236,18 @@ function AddCreditsModal({ onClose }: AddCreditsModalProps) {
             name="amount"
             type="number"
             className="text-lg bg-[#27272A] p-2"
+            placeholder={t(I18nKey.PAYMENT$SPECIFY_AMOUNT_USD)}
+            min={10}
+            max={25000}
+            step={1}
+            value={inputValue}
+            onChange={(e) => handleAmountInputChange(e.target.value)}
           />
+          {errorMessage && (
+            <p className="text-red-500 text-sm mt-1" data-testid="amount-error">
+              {errorMessage}
+            </p>
+          )}
         </div>
 
         <div className="flex gap-2">
@@ -289,7 +320,7 @@ function ManageOrg() {
         </span>
         <div className="flex items-center gap-2">
           <TempChip data-testid="available-credits">
-            {organization?.balance}
+            {organization?.credits}
           </TempChip>
           {canAddCredits && (
             <TempInteractiveChip onClick={() => setAddCreditsFormVisible(true)}>
