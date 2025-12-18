@@ -11,14 +11,22 @@ interface DropdownProps {
   options: DropdownOption[];
   emptyMessage?: string;
   clearable?: boolean;
+  loading?: boolean;
+  disabled?: boolean;
+  placeholder?: string;
+  defaultValue?: DropdownOption;
 }
 
 export function Dropdown({
   options,
   emptyMessage = "No options",
   clearable = false,
+  loading = false,
+  disabled = false,
+  placeholder,
+  defaultValue,
 }: DropdownProps) {
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(defaultValue?.label ?? "");
 
   const filteredOptions = options.filter((option) =>
     option.label.toLowerCase().includes(inputValue.toLowerCase()),
@@ -39,14 +47,26 @@ export function Dropdown({
     onInputValueChange: ({ inputValue: newValue }) => {
       setInputValue(newValue ?? "");
     },
+    defaultSelectedItem: defaultValue,
+    onIsOpenChange: ({
+      isOpen: newIsOpen,
+      selectedItem: currentSelectedItem,
+    }) => {
+      if (newIsOpen) {
+        setInputValue("");
+      } else {
+        setInputValue(currentSelectedItem?.label ?? "");
+      }
+    },
   });
 
   return (
     <div>
+      {loading && <span data-testid="dropdown-loading" />}
       <button
         type="button"
         data-testid="dropdown-trigger"
-        {...getToggleButtonProps()}
+        {...getToggleButtonProps({ disabled: loading || disabled })}
       >
         {selectedItem?.label}
       </button>
@@ -58,7 +78,7 @@ export function Dropdown({
           aria-label="Clear selection"
         />
       )}
-      <input {...getInputProps()} />
+      <input {...getInputProps({ placeholder })} />
       <ul {...getMenuProps()}>
         {isOpen && filteredOptions.length === 0 && <li>{emptyMessage}</li>}
         {isOpen &&

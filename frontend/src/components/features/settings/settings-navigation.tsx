@@ -10,6 +10,7 @@ import { useMe } from "#/hooks/query/use-me";
 import { useOrganizations } from "#/hooks/query/use-organizations";
 import { useConfig } from "#/hooks/query/use-config";
 import { OrgSelector } from "../org/org-selector";
+import { Dropdown } from "#/components/ui/dropdown/dropdown";
 
 interface NavigationItem {
   to: string;
@@ -65,6 +66,13 @@ export function SettingsNavigation({
       >
         <div className="py-2">
           <OrgSelector />
+          <Dropdown
+            options={[
+              { value: "option1", label: "Option 1" },
+              { value: "option2", label: "Option 2" },
+              { value: "option3", label: "Option 3" },
+            ]}
+          />
         </div>
 
         <div className="flex items-center justify-between">

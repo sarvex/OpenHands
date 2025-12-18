@@ -197,19 +197,108 @@ describe("Dropdown", () => {
   });
 
   describe("Loading state", () => {
-    it.todo("should display loading indicator when loading prop is true");
-    it.todo("should disable interaction while loading");
+    it("should not display loading indicator by default", () => {
+      render(<Dropdown options={mockOptions} />);
+
+      expect(screen.queryByTestId("dropdown-loading")).not.toBeInTheDocument();
+    });
+
+    it("should display loading indicator when loading prop is true", () => {
+      render(<Dropdown options={mockOptions} loading />);
+
+      expect(screen.getByTestId("dropdown-loading")).toBeInTheDocument();
+    });
+
+    it("should disable interaction while loading", async () => {
+      const user = userEvent.setup();
+      render(<Dropdown options={mockOptions} loading />);
+
+      const trigger = screen.getByTestId("dropdown-trigger");
+      await user.click(trigger);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
   });
 
   describe("Disabled state", () => {
-    it.todo("should not open dropdown when disabled");
-    it.todo("should apply disabled styling to trigger");
-    it.todo("should not respond to keyboard events when disabled");
+    it("should not open dropdown when disabled", async () => {
+      const user = userEvent.setup();
+      render(<Dropdown options={mockOptions} disabled />);
+
+      const trigger = screen.getByTestId("dropdown-trigger");
+      await user.click(trigger);
+
+      expect(trigger).toHaveAttribute("aria-expanded", "false");
+    });
+
+    it("should have disabled attribute on trigger", () => {
+      render(<Dropdown options={mockOptions} disabled />);
+
+      const trigger = screen.getByTestId("dropdown-trigger");
+      expect(trigger).toBeDisabled();
+    });
   });
 
   describe("Placeholder", () => {
-    it.todo("should display placeholder text when no value selected");
-    it.todo("should hide placeholder when value is selected");
+    it("should display placeholder text when no value selected", () => {
+      render(<Dropdown options={mockOptions} placeholder="Select an option" />);
+
+      const input = screen.getByRole("combobox");
+      expect(input).toHaveAttribute("placeholder", "Select an option");
+    });
+  });
+
+  describe("Default value", () => {
+    it("should display defaultValue in trigger on mount", () => {
+      render(<Dropdown options={mockOptions} defaultValue={mockOptions[0]} />);
+
+      const trigger = screen.getByTestId("dropdown-trigger");
+      expect(trigger).toHaveTextContent("Option 1");
+    });
+
+    it("should have defaultValue selected in input on mount", () => {
+      render(<Dropdown options={mockOptions} defaultValue={mockOptions[0]} />);
+
+      const input = screen.getByRole("combobox");
+      expect(input).toHaveValue("Option 1");
+    });
+
+    it("should show all options when opened with defaultValue", async () => {
+      const user = userEvent.setup();
+      render(<Dropdown options={mockOptions} defaultValue={mockOptions[0]} />);
+
+      const trigger = screen.getByTestId("dropdown-trigger");
+      await user.click(trigger);
+
+      expect(
+        screen.getByRole("option", { name: "Option 1" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: "Option 2" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: "Option 3" }),
+      ).toBeInTheDocument();
+    });
+
+    it("should restore input value when closed with Escape", async () => {
+      const user = userEvent.setup();
+      render(<Dropdown options={mockOptions} defaultValue={mockOptions[0]} />);
+
+      const trigger = screen.getByTestId("dropdown-trigger");
+      await user.click(trigger);
+
+      const input = screen.getByRole("combobox");
+      await user.type(input, "test");
+      await user.keyboard("{Escape}");
+
+      expect(input).toHaveValue("Option 1");
+    });
+  });
+
+  describe("onChange", () => {
+    it.todo("should call onChange with selected item when option is clicked");
+    it.todo("should call onChange with null when selection is cleared");
   });
 
   describe("Controlled mode", () => {
@@ -222,15 +311,5 @@ describe("Dropdown", () => {
     it.todo("should manage selection state internally");
     it.todo("should call onChange when selection changes");
     it.todo("should support defaultValue prop");
-  });
-
-  describe("Default value", () => {
-    it.todo("should initialize with defaultValue in uncontrolled mode");
-    it.todo("should display defaultValue in trigger on mount");
-  });
-
-  describe("onChange", () => {
-    it.todo("should call onChange with selected item when option is clicked");
-    it.todo("should call onChange with null when selection is cleared");
   });
 });
