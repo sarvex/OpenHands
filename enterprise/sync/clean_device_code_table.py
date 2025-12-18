@@ -1,7 +1,7 @@
 """
 Cleanup script for device code table.
 
-This script removes expired device codes from the database. Device codes are considered 
+This script removes expired device codes from the database. Device codes are considered
 expired if they are past their expires_at time.
 
 The cleanup is limited to a maximum number of codes to avoid overwhelming the database.
