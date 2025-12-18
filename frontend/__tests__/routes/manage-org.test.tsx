@@ -10,6 +10,7 @@ import SettingsScreen, { clientLoader } from "#/routes/settings";
 import { resetOrgMockData } from "#/mocks/org-handlers";
 import OptionService from "#/api/option-service/option-service.api";
 import BillingService from "#/api/billing-service/billing-service.api";
+import { OrganizationMember } from "#/types/org";
 
 function ManageOrgWithPortalRoot() {
   return (
@@ -62,27 +63,45 @@ describe("Manage Org Route", () => {
   const getMeSpy = vi.spyOn(organizationService, "getMe");
 
   // Test data constants
-  const TEST_USERS = {
+  const TEST_USERS: Record<"OWNER" | "ADMIN", OrganizationMember> = {
     OWNER: {
-      id: "1",
+      org_id: "1",
+      user_id: "1",
       email: "test@example.com",
-      role: "owner" as const,
-      status: "active" as const,
+      role: "owner",
+      llm_api_key: "**********",
+      max_iterations: 20,
+      llm_model: "gpt-4",
+      llm_api_key_for_byor: null,
+      llm_base_url: "https://api.openai.com",
+      status: "active",
     },
     ADMIN: {
-      id: "1",
+      org_id: "1",
+      user_id: "1",
       email: "test@example.com",
-      role: "admin" as const,
-      status: "active" as const,
+      role: "admin",
+      llm_api_key: "**********",
+      max_iterations: 20,
+      llm_model: "gpt-4",
+      llm_api_key_for_byor: null,
+      llm_base_url: "https://api.openai.com",
+      status: "active",
     },
   };
 
   // Helper function to set up user mock
   const setupUserMock = (userData: {
-    id: string;
+    org_id: string;
+    user_id: string;
     email: string;
     role: "owner" | "admin" | "user";
-    status: "active" | "invited";
+    llm_api_key: string;
+    max_iterations: number;
+    llm_model: string;
+    llm_api_key_for_byor: string | null;
+    llm_base_url: string;
+    status: "active" | "invited" | "inactive";
   }) => {
     getMeSpy.mockResolvedValue(userData);
   };
@@ -661,16 +680,22 @@ describe("Manage Org Route", () => {
       expect(deleteButton).not.toBeDisabled();
     });
 
-    it.each([
-      { role: "admin" as const, roleName: "Admin" },
-      { role: "user" as const, roleName: "User" },
+    it.each<{ role: "admin" | "user"; roleName: string }>([
+      { role: "admin", roleName: "Admin" },
+      { role: "user", roleName: "User" },
     ])(
       "should not show delete organization button when user lacks canDeleteOrganization permission ($roleName role)",
       async ({ role }) => {
         setupUserMock({
-          id: "1",
+          org_id: "1",
+          user_id: "1",
           email: "test@example.com",
           role,
+          llm_api_key: "**********",
+          max_iterations: 20,
+          llm_model: "gpt-4",
+          llm_api_key_for_byor: null,
+          llm_base_url: "https://api.openai.com",
           status: "active",
         });
 
