@@ -4,7 +4,7 @@ import secrets
 import string
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 from storage.device_code import DeviceCode
 
@@ -182,14 +182,13 @@ class DeviceCodeStore:
         """
         with self.session_maker() as session:
             # Get expired device codes, ordered by oldest first (using ID as proxy for creation order)
-            query = (
-                select(DeviceCode)
-                .where(DeviceCode.expires_at < datetime.now(timezone.utc))
+            expired_codes = (
+                session.query(DeviceCode)
+                .filter(DeviceCode.expires_at < datetime.now(timezone.utc))
                 .order_by(DeviceCode.id.asc())
                 .limit(limit)
+                .all()
             )
-            result = session.execute(query)
-            expired_codes = result.scalars().all()
 
             if not expired_codes:
                 logger.info('No expired device codes found')
