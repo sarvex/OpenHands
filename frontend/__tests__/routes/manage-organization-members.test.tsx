@@ -184,6 +184,7 @@ describe("Manage Organization Members Route", () => {
   // Helper function to setup invite test (render and select organization)
   const setupInviteTest = async (orgIndex: number = 0) => {
     renderManageOrganizationMembers();
+    await screen.findByTestId("manage-organization-members-settings");
     await selectOrganization({ orgIndex });
   };
 

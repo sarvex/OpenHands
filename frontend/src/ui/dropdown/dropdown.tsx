@@ -17,6 +17,7 @@ interface DropdownProps {
   placeholder?: string;
   defaultValue?: DropdownOption;
   onChange?: (item: DropdownOption | null) => void;
+  testId?: string;
 }
 
 export function Dropdown({
@@ -28,6 +29,7 @@ export function Dropdown({
   placeholder,
   defaultValue,
   onChange,
+  testId,
 }: DropdownProps) {
   const [inputValue, setInputValue] = useState(defaultValue?.label ?? "");
 
@@ -69,7 +71,7 @@ export function Dropdown({
   const isDisabled = loading || disabled;
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full" data-testid={testId}>
       <div
         className={cn(
           "bg-tertiary border border-[#717888] rounded w-full p-2",

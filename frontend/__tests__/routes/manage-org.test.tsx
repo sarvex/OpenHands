@@ -119,6 +119,7 @@ describe("Manage Org Route", () => {
 
   it("should render account details", async () => {
     renderManageOrg();
+    await screen.findByTestId("manage-org-screen");
 
     await selectOrganization({ orgIndex: 0 });
 

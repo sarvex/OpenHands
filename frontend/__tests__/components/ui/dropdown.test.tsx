@@ -352,4 +352,12 @@ describe("Dropdown", () => {
     it.todo("should call onChange when selection changes");
     it.todo("should support defaultValue prop");
   });
+
+  describe("testId prop", () => {
+    it("should apply custom testId to the root container", () => {
+      render(<Dropdown options={mockOptions} testId="org-dropdown" />);
+
+      expect(screen.getByTestId("org-dropdown")).toBeInTheDocument();
+    });
+  });
 });

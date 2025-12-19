@@ -88,31 +88,39 @@ export const selectOrganization = async ({
     expect.fail(`No organization found at index ${orgIndex}`);
   }
 
+  // Wait for the settings navbar to render (which contains the org selector)
+  await screen.findByTestId("settings-navbar");
+
   // Wait for orgs to load and auto-select to happen (first org gets auto-selected)
   const organizationSelect = await screen.findByTestId("org-selector");
   expect(organizationSelect).toBeInTheDocument();
 
-  // Wait until the selector is not loading anymore
+  // Wait until the dropdown trigger is not disabled (orgs have loaded)
+  const trigger = await screen.findByTestId("dropdown-trigger");
   await waitFor(() => {
-    expect(organizationSelect).not.toBeDisabled();
+    expect(trigger).not.toBeDisabled();
   });
+
+  // Get the combobox input (where the value is displayed)
+  const combobox = screen.getByRole("combobox");
 
   // If selecting org index 0, it should already be auto-selected
   if (orgIndex === 0) {
     await waitFor(() => {
-      expect(organizationSelect).toHaveValue(targetOrg.name);
+      expect(combobox).toHaveValue(targetOrg.name);
     });
     return;
   }
 
-  await userEvent.click(organizationSelect);
+  // Click the trigger to open the dropdown
+  await userEvent.click(trigger);
 
-  // Find the option by its text content (organization name)
-  const option = await screen.findByText(targetOrg.name);
+  // Find the option by its role and text content (organization name)
+  const option = await screen.findByRole("option", { name: targetOrg.name });
   await userEvent.click(option);
 
-  // Wait for the selection to be reflected in the input
+  // Wait for the selection to be reflected in the combobox
   await waitFor(() => {
-    expect(organizationSelect).toHaveValue(targetOrg.name);
+    expect(combobox).toHaveValue(targetOrg.name);
   });
 };

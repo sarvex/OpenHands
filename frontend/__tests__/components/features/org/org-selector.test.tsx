@@ -31,8 +31,9 @@ describe("OrgSelector", () => {
 
     renderOrgSelector();
 
-    const selector = screen.getByTestId("org-selector");
-    expect(selector).toBeDisabled();
+    // The dropdown trigger should be disabled while loading
+    const trigger = screen.getByTestId("dropdown-trigger");
+    expect(trigger).toBeDisabled();
   });
 
   it("should select the first organization after orgs are loaded", async () => {
@@ -43,13 +44,14 @@ describe("OrgSelector", () => {
 
     renderOrgSelector();
 
+    // The combobox input should show the first org name
     await waitFor(() => {
-      const selector = screen.getByTestId("org-selector");
-      expect(selector).toHaveValue("Personal Workspace");
+      const input = screen.getByRole("combobox");
+      expect(input).toHaveValue("Personal Workspace");
     });
   });
 
-  it("should show all options when the clear button is pressed", async () => {
+  it("should show all options when dropdown is opened", async () => {
     const user = userEvent.setup();
     vi.spyOn(organizationService, "getOrganizations").mockResolvedValue([
       MOCK_PERSONAL_ORG,
@@ -60,13 +62,14 @@ describe("OrgSelector", () => {
     renderOrgSelector();
 
     // Wait for the selector to be populated with the first organization
-    const selector = await screen.findByTestId("org-selector");
     await waitFor(() => {
-      expect(selector).toHaveValue("Personal Workspace");
+      const input = screen.getByRole("combobox");
+      expect(input).toHaveValue("Personal Workspace");
     });
 
-    // Click to open dropdown
-    await user.click(selector);
+    // Click the trigger to open dropdown
+    const trigger = screen.getByTestId("dropdown-trigger");
+    await user.click(trigger);
 
     // Verify all 3 options are visible
     const listbox = await screen.findByRole("listbox");

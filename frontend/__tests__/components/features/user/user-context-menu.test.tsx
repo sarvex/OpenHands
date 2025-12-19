@@ -54,7 +54,8 @@ vi.mock("react-router", async (importActual) => ({
 
 describe("UserContextMenu", () => {
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    navigateMock.mockClear();
   });
 
   it("should render the default context items for a user", () => {
@@ -317,12 +318,16 @@ describe("UserContextMenu", () => {
 
       renderUserContextMenu({ type: "admin", onClose: vi.fn });
 
-      // Wait for orgs to load, then verify buttons are hidden for personal org
+      // Wait for orgs to load AND org to be selected (buttons should disappear)
       await waitFor(() => {
+        expect(screen.getByRole("combobox")).toHaveValue(
+          MOCK_PERSONAL_ORG.name,
+        );
         expect(
           screen.queryByText("ORG$MANAGE_ORGANIZATION_MEMBERS"),
         ).not.toBeInTheDocument();
       });
+
       expect(screen.queryByText("ORG$MANAGE_ACCOUNT")).not.toBeInTheDocument();
     });
 
@@ -339,8 +344,11 @@ describe("UserContextMenu", () => {
 
       renderUserContextMenu({ type: "admin", onClose: vi.fn });
 
-      // Wait for orgs to load, then verify Billing is hidden for team orgs
+      // Wait for orgs to load AND org to be selected (Billing should disappear)
       await waitFor(() => {
+        expect(screen.getByRole("combobox")).toHaveValue(
+          MOCK_TEAM_ORG_ACME.name,
+        );
         expect(
           screen.queryByText("SETTINGS$NAV_BILLING"),
         ).not.toBeInTheDocument();
@@ -367,21 +375,33 @@ describe("UserContextMenu", () => {
   });
 
   test("the user can change orgs", async () => {
+    const user = userEvent.setup();
     const onCloseMock = vi.fn();
     renderUserContextMenu({ type: "user", onClose: onCloseMock });
 
     const orgSelector = screen.getByTestId("org-selector");
     expect(orgSelector).toBeInTheDocument();
 
-    // Simulate changing the organization
-    await userEvent.click(orgSelector);
-    const orgOption = screen.getByText(INITIAL_MOCK_ORGS[1].name);
-    await userEvent.click(orgOption);
+    // Wait for organizations to load (indicated by org name appearing in the dropdown)
+    await waitFor(() => {
+      expect(screen.getByRole("combobox")).toHaveValue(
+        INITIAL_MOCK_ORGS[0].name,
+      );
+    });
+
+    // Open the dropdown by clicking the trigger
+    const trigger = screen.getByTestId("dropdown-trigger");
+    await user.click(trigger);
+
+    // Select a different organization
+    const orgOption = screen.getByRole("option", {
+      name: INITIAL_MOCK_ORGS[1].name,
+    });
+    await user.click(orgOption);
 
     expect(onCloseMock).not.toHaveBeenCalled();
 
     // Verify that the dropdown shows the selected organization
-    // The dropdown should now display the selected org name
-    expect(orgSelector).toHaveValue(INITIAL_MOCK_ORGS[1].name);
+    expect(screen.getByRole("combobox")).toHaveValue(INITIAL_MOCK_ORGS[1].name);
   });
 });
