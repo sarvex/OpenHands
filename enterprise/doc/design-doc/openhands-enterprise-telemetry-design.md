@@ -106,8 +106,15 @@ System administrators will not need to configure the telemetry system manually. 
 
 ### 3.1 Replicated Platform Integration
 
-The Replicated platform provides vendor-hosted infrastructure for collecting customer and instance telemetry. The Python SDK handles authentication, state management, and reliable metric delivery. Key concepts:
+The Replicated platform provides vendor-hosted infrastructure for collecting customer and instance telemetry. The Python SDK handles authentication, state management, and reliable metric delivery.
 
+**SDK Information:**
+- **PyPI Package**: [`replicated`](https://pypi.org/project/replicated/) - Install via `pip install replicated`
+- **Documentation**: [docs.replicated.com/sdk/python](https://docs.replicated.com/sdk/python)
+- **License**: MIT
+- **Current Version**: 0.1.0a2 (alpha)
+
+**Key Concepts:**
 - **Customer**: Represents a unique OHE installation, identified by email or installation fingerprint
 - **Instance**: Represents a specific deployment of OHE for a customer
 - **Metrics**: Custom key-value data points collected from the installation
@@ -549,7 +556,7 @@ class TelemetryService:
             return
         
         try:
-            from replicated_sdk import Client, Instance
+            from replicated import ReplicatedClient, InstanceStatus
             
             # Get pending metrics
             with session_maker() as session:
@@ -574,22 +581,31 @@ class TelemetryService:
                 identity = self._get_or_create_identity(session, admin_email)
                 
                 # Initialize Replicated client
-                client = Client(
-                    api_token=self.replicated_publishable_key,
+                client = ReplicatedClient(
+                    publishable_key=self.replicated_publishable_key,
                     app_slug=self.replicated_app_slug
                 )
                 
                 # Upload each pending metric
                 successful_count = 0
+                # Get or create customer and instance
+                customer = client.customer.get_or_create(email_address=admin_email)
+                instance = customer.get_or_create_instance()
+                
+                # Update identity with Replicated IDs
+                identity.customer_id = customer.customer_id
+                identity.instance_id = instance.instance_id
+                session.commit()
+                
+                # Upload each pending metric
                 for metric in pending_metrics:
                     try:
-                        # Send to Replicated
-                        client.send_instance_data(
-                            customer_id=identity.customer_id,
-                            instance_id=identity.instance_id,
-                            data=metric.metrics_data,
-                            status=Instance.Status.RUNNING
-                        )
+                        # Send individual metrics
+                        for key, value in metric.metrics_data.items():
+                            instance.send_metric(key, value)
+                        
+                        # Update instance status
+                        instance.set_status(InstanceStatus.RUNNING)
                         
                         # Mark as uploaded
                         metric.uploaded_at = datetime.now(timezone.utc)
@@ -652,12 +668,15 @@ class TelemetryService:
         # Generate instance_id using Replicated SDK if not set
         if not identity.instance_id:
             try:
-                from replicated_sdk import Client
-                client = Client(
-                    api_token=self.replicated_publishable_key,
+                from replicated import ReplicatedClient
+                client = ReplicatedClient(
+                    publishable_key=self.replicated_publishable_key,
                     app_slug=self.replicated_app_slug
                 )
-                identity.instance_id = client.instance_id
+                # Create customer and instance to get IDs
+                customer = client.customer.get_or_create(email_address=admin_email)
+                instance = customer.get_or_create_instance()
+                identity.instance_id = instance.instance_id
             except Exception as e:
                 logger.error(f"Error generating instance_id: {e}")
                 # Generate a fallback UUID if Replicated SDK fails
