@@ -399,7 +399,7 @@ class LinearManager(Manager):
             logger.error(
                 f'[Linear] Unexpected error starting job: {str(e)}', exc_info=True
             )
-            msg_info = 'Uh oh! There was an unexpected error starting the job :('
+            msg_info = 'Sorry, there was an unexpected error starting the job. Please try again.'
 
         # Send response comment
         try:
