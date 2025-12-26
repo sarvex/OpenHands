@@ -29,7 +29,11 @@ from openhands.core.logger import openhands_logger as logger
 from openhands.integrations.provider import ProviderHandler
 from openhands.integrations.service_types import Repository
 from openhands.server.shared import server_config
-from openhands.server.types import LLMAuthenticationError, MissingSettingsError
+from openhands.server.types import (
+    LLMAuthenticationError,
+    MissingSettingsError,
+    SessionExpiredError,
+)
 from openhands.server.user_auth.user_auth import UserAuth
 from openhands.utils.http_session import httpx_verify_option
 
@@ -387,11 +391,15 @@ class LinearManager(Manager):
             logger.warning(f'[Linear] LLM authentication error: {str(e)}')
             msg_info = f'Please set a valid LLM API key in [OpenHands Cloud]({HOST_URL}) before starting a job.'
 
+        except SessionExpiredError as e:
+            logger.warning(f'[Linear] Session expired: {str(e)}')
+            msg_info = f'Your session has expired. Please login again at [OpenHands Cloud]({HOST_URL}) and try again.'
+
         except Exception as e:
             logger.error(
                 f'[Linear] Unexpected error starting job: {str(e)}', exc_info=True
             )
-            msg_info = 'Sorry, there was an unexpected error starting the job. Please try again.'
+            msg_info = 'Uh oh! There was an unexpected error starting the job :('
 
         # Send response comment
         try:
