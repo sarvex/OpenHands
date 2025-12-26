@@ -14,6 +14,7 @@ from integrations.slack.slack_view import (
 from integrations.utils import (
     HOST_URL,
     OPENHANDS_RESOLVER_TEMPLATES_DIR,
+    get_session_expired_message,
 )
 from jinja2 import Environment, FileSystemLoader
 from pydantic import SecretStr
@@ -361,7 +362,7 @@ class SlackManager(Manager):
                     f'[Slack] Session expired for user {user_info.slack_display_name}: {str(e)}'
                 )
 
-                msg_info = f'@{user_info.slack_display_name} your session has expired. Please login again at [OpenHands Cloud]({HOST_URL}) and try again.'
+                msg_info = get_session_expired_message(user_info.slack_display_name)
 
             except StartingConvoException as e:
                 msg_info = str(e)

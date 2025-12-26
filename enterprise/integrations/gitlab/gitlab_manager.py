@@ -15,6 +15,7 @@ from integrations.utils import (
     CONVERSATION_URL,
     HOST_URL,
     OPENHANDS_RESOLVER_TEMPLATES_DIR,
+    get_session_expired_message,
 )
 from jinja2 import Environment, FileSystemLoader
 from pydantic import SecretStr
@@ -258,7 +259,7 @@ class GitlabManager(Manager):
                     f'[GitLab] Session expired for user {user_info.username}: {str(e)}'
                 )
 
-                msg_info = f'@{user_info.username} your session has expired. Please login again at [OpenHands Cloud]({HOST_URL}) and try again.'
+                msg_info = get_session_expired_message(user_info.username)
 
             # Send the acknowledgment message
             msg = self.create_outgoing_message(msg_info)

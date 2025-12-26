@@ -470,9 +470,7 @@ class TokenManager:
         except KeycloakPostError as e:
             error_message = str(e)
             if 'invalid_grant' in error_message or 'session not found' in error_message:
-                logger.warning(
-                    f'User session expired or invalid: {error_message}'
-                )
+                logger.warning(f'User session expired or invalid: {error_message}')
                 raise SessionExpiredError(
                     'Your session has expired. Please login again.'
                 ) from e

@@ -17,6 +17,7 @@ from integrations.utils import (
     HOST_URL,
     OPENHANDS_RESOLVER_TEMPLATES_DIR,
     filter_potential_repos_by_user_msg,
+    get_session_expired_message,
 )
 from jinja2 import Environment, FileSystemLoader
 from server.auth.saas_user_auth import get_user_auth_from_keycloak_id
@@ -386,7 +387,7 @@ class JiraManager(Manager):
 
         except SessionExpiredError as e:
             logger.warning(f'[Jira] Session expired: {str(e)}')
-            msg_info = f'Your session has expired. Please login again at [OpenHands Cloud]({HOST_URL}) and try again.'
+            msg_info = get_session_expired_message()
 
         except Exception as e:
             logger.error(
