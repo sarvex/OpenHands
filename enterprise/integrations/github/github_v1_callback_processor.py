@@ -25,6 +25,7 @@ from openhands.app_server.event_callback.util import (
 )
 from openhands.sdk import Event
 from openhands.sdk.event import ConversationStateUpdateEvent
+from server.auth.constants import GITHUB_APP_CLIENT_ID, GITHUB_APP_PRIVATE_KEY
 
 _logger = logging.getLogger(__name__)
 
@@ -82,8 +83,8 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
                 # Check if we have installation ID and credentials before posting
                 if (
                     self.github_view_data.get('installation_id')
-                    and os.getenv('GITHUB_APP_CLIENT_ID')
-                    and os.getenv('GITHUB_APP_PRIVATE_KEY')
+                    and GITHUB_APP_CLIENT_ID
+                    and GITHUB_APP_PRIVATE_KEY
                 ):
                     await self._post_summary_to_github(
                         f'OpenHands encountered an error: **{str(e)}**.\n\n'
@@ -115,17 +116,12 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
                 f'Missing installation ID for GitHub payload: {self.github_view_data}'
             )
 
-        github_app_client_id = os.getenv('GITHUB_APP_CLIENT_ID', '').strip()
-        github_app_private_key = os.getenv('GITHUB_APP_PRIVATE_KEY', '').replace(
-            '\\n', '\n'
-        )
-
-        if not github_app_client_id or not github_app_private_key:
+        if not GITHUB_APP_CLIENT_ID or not GITHUB_APP_PRIVATE_KEY:
             raise ValueError('GitHub App credentials are not configured')
 
         github_integration = GithubIntegration(
-            github_app_client_id,
-            github_app_private_key,
+            GITHUB_APP_CLIENT_ID,
+            GITHUB_APP_PRIVATE_KEY,
         )
         token_data = github_integration.get_access_token(installation_id)
         return token_data.token
