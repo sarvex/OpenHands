@@ -13,6 +13,8 @@ import { MOCK_DEFAULT_USER_SETTINGS } from "#/mocks/handlers";
 import { GetConfigResponse } from "#/api/option-service/option.types";
 import * as ToastHandlers from "#/utils/custom-toast-handlers";
 import { SecretsService } from "#/api/secrets-service";
+import { IntegrationService } from "#/api/integration-service/integration-service.api";
+import { ReinstallGitLabWebhookResponse } from "#/api/integration-service/integration-service.types";
 
 const VALID_OSS_CONFIG: GetConfigResponse = {
   APP_MODE: "oss",
@@ -63,6 +65,15 @@ const renderGitSettingsScreen = () => {
           GITLAB$HOST_LABEL: "GitLab Host",
           BITBUCKET$TOKEN_LABEL: "Bitbucket Token",
           BITBUCKET$HOST_LABEL: "Bitbucket Host",
+          SETTINGS$GITLAB: "GitLab",
+          COMMON$STATUS: "Status",
+          STATUS$CONNECTED: "Connected",
+          SETTINGS$GITLAB_NOT_CONNECTED: "Not Connected",
+          SETTINGS$GITLAB_REINSTALL_WEBHOOK: "Reinstall Webhook",
+          SETTINGS$GITLAB_INSTALLING_WEBHOOK:
+            "Installing GitLab webhook, please wait a few minutes.",
+          SETTINGS$SAVING: "Saving...",
+          ERROR$GENERIC: "An error occurred",
         },
       },
     },
@@ -356,7 +367,9 @@ describe("Form submission", () => {
 
     renderGitSettingsScreen();
 
-    const azureDevOpsInput = await screen.findByTestId("azure-devops-token-input");
+    const azureDevOpsInput = await screen.findByTestId(
+      "azure-devops-token-input",
+    );
     const submit = await screen.findByTestId("submit-button");
 
     await userEvent.type(azureDevOpsInput, "test-token");
@@ -558,5 +571,273 @@ describe("Status toasts", () => {
 
     expect(saveProvidersSpy).toHaveBeenCalled();
     expect(displayErrorToastSpy).toHaveBeenCalled();
+  });
+});
+
+describe("GitLab Webhook Reinstallation", () => {
+  it("should not render GitLab section in OSS mode", async () => {
+    // Arrange
+    const getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    getConfigSpy.mockResolvedValue(VALID_OSS_CONFIG);
+
+    // Act
+    renderGitSettingsScreen();
+    await screen.findByTestId("git-settings-screen");
+
+    // Assert
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("reinstall-gitlab-webhooks-button"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("should not render GitLab section in SaaS mode without APP_SLUG", async () => {
+    // Arrange
+    const getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    getConfigSpy.mockResolvedValue(VALID_SAAS_CONFIG);
+
+    // Act
+    renderGitSettingsScreen();
+    await screen.findByTestId("git-settings-screen");
+
+    // Assert
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("reinstall-gitlab-webhooks-button"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("should render GitLab section with 'Not Connected' status when token is not set", async () => {
+    // Arrange
+    const getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    const getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
+
+    getConfigSpy.mockResolvedValue({
+      ...VALID_SAAS_CONFIG,
+      APP_SLUG: "test-slug",
+    });
+    getSettingsSpy.mockResolvedValue({
+      ...MOCK_DEFAULT_USER_SETTINGS,
+      provider_tokens_set: {},
+    });
+
+    // Act
+    renderGitSettingsScreen();
+    await screen.findByTestId("git-settings-screen");
+
+    // Assert
+    await waitFor(() => {
+      const statusText = screen.getByTestId("gitlab-status-text");
+      expect(statusText).toBeInTheDocument();
+      expect(
+        statusText.textContent?.includes("SETTINGS$GITLAB_NOT_CONNECTED") ||
+          statusText.textContent?.includes("Not Connected"),
+      ).toBe(true);
+      expect(
+        screen.queryByTestId("reinstall-gitlab-webhooks-button"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("should render GitLab section with 'Connected' status when token is set", async () => {
+    // Arrange
+    const getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    const getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
+
+    getConfigSpy.mockResolvedValue({
+      ...VALID_SAAS_CONFIG,
+      APP_SLUG: "test-slug",
+    });
+    getSettingsSpy.mockResolvedValue({
+      ...MOCK_DEFAULT_USER_SETTINGS,
+      provider_tokens_set: {
+        gitlab: null,
+      },
+    });
+
+    // Act
+    renderGitSettingsScreen();
+    await screen.findByTestId("git-settings-screen");
+
+    // Assert
+    await waitFor(() => {
+      const statusText = screen.getByTestId("gitlab-status-text");
+      expect(statusText).toBeInTheDocument();
+      expect(
+        statusText.textContent?.includes("STATUS$CONNECTED") ||
+          statusText.textContent?.includes("Connected"),
+      ).toBe(true);
+      expect(
+        screen.getByTestId("reinstall-gitlab-webhooks-button"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("should call IntegrationService when reinstall button is clicked", async () => {
+    // Arrange
+    const getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    const getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
+    const reinstallWebhookSpy = vi.spyOn(
+      IntegrationService,
+      "reinstallGitLabWebhook",
+    );
+
+    getConfigSpy.mockResolvedValue({
+      ...VALID_SAAS_CONFIG,
+      APP_SLUG: "test-slug",
+    });
+    getSettingsSpy.mockResolvedValue({
+      ...MOCK_DEFAULT_USER_SETTINGS,
+      provider_tokens_set: {
+        gitlab: null,
+      },
+    });
+    reinstallWebhookSpy.mockResolvedValue({
+      message: "Webhook marked for reinstallation",
+      webhooks_marked: 1,
+    });
+
+    // Act
+    renderGitSettingsScreen();
+    const reinstallButton = await screen.findByTestId(
+      "reinstall-gitlab-webhooks-button",
+    );
+    await userEvent.click(reinstallButton);
+
+    // Assert
+    await waitFor(() => {
+      expect(reinstallWebhookSpy).toHaveBeenCalledOnce();
+    });
+  });
+
+  it("should show loading state when reinstallation is in progress", async () => {
+    // Arrange
+    const getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    const getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
+    const reinstallWebhookSpy = vi.spyOn(
+      IntegrationService,
+      "reinstallGitLabWebhook",
+    );
+
+    getConfigSpy.mockResolvedValue({
+      ...VALID_SAAS_CONFIG,
+      APP_SLUG: "test-slug",
+    });
+    getSettingsSpy.mockResolvedValue({
+      ...MOCK_DEFAULT_USER_SETTINGS,
+      provider_tokens_set: {
+        gitlab: null,
+      },
+    });
+
+    // Create a promise that we can control
+    let resolvePromise: (value: ReinstallGitLabWebhookResponse) => void;
+    const controlledPromise = new Promise<ReinstallGitLabWebhookResponse>(
+      (resolve) => {
+        resolvePromise = resolve;
+      },
+    );
+    reinstallWebhookSpy.mockReturnValue(controlledPromise);
+
+    // Act
+    renderGitSettingsScreen();
+    const reinstallButton = await screen.findByTestId(
+      "reinstall-gitlab-webhooks-button",
+    );
+    await userEvent.click(reinstallButton);
+
+    // Assert
+    await waitFor(() => {
+      expect(reinstallButton).toBeDisabled();
+      expect(reinstallButton).toHaveTextContent("SETTINGS$SAVING");
+    });
+
+    // Cleanup
+    resolvePromise!({
+      message: "Webhook marked for reinstallation",
+      webhooks_marked: 1,
+    });
+  });
+
+  it("should display success toast when reinstallation succeeds", async () => {
+    // Arrange
+    const getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    const getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
+    const reinstallWebhookSpy = vi.spyOn(
+      IntegrationService,
+      "reinstallGitLabWebhook",
+    );
+    const displaySuccessToastSpy = vi.spyOn(
+      ToastHandlers,
+      "displaySuccessToast",
+    );
+
+    getConfigSpy.mockResolvedValue({
+      ...VALID_SAAS_CONFIG,
+      APP_SLUG: "test-slug",
+    });
+    getSettingsSpy.mockResolvedValue({
+      ...MOCK_DEFAULT_USER_SETTINGS,
+      provider_tokens_set: {
+        gitlab: null,
+      },
+    });
+    reinstallWebhookSpy.mockResolvedValue({
+      message: "Webhook marked for reinstallation",
+      webhooks_marked: 1,
+    });
+
+    // Act
+    renderGitSettingsScreen();
+    const reinstallButton = await screen.findByTestId(
+      "reinstall-gitlab-webhooks-button",
+    );
+    await userEvent.click(reinstallButton);
+
+    // Assert
+    await waitFor(() => {
+      expect(displaySuccessToastSpy).toHaveBeenCalledWith(
+        "SETTINGS$GITLAB_INSTALLING_WEBHOOK",
+      );
+    });
+  });
+
+  it("should display error toast when reinstallation fails", async () => {
+    // Arrange
+    const getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    const getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
+    const reinstallWebhookSpy = vi.spyOn(
+      IntegrationService,
+      "reinstallGitLabWebhook",
+    );
+    const displayErrorToastSpy = vi.spyOn(ToastHandlers, "displayErrorToast");
+
+    getConfigSpy.mockResolvedValue({
+      ...VALID_SAAS_CONFIG,
+      APP_SLUG: "test-slug",
+    });
+    getSettingsSpy.mockResolvedValue({
+      ...MOCK_DEFAULT_USER_SETTINGS,
+      provider_tokens_set: {
+        gitlab: null,
+      },
+    });
+    reinstallWebhookSpy.mockRejectedValue(
+      new Error("Failed to reinstall webhook"),
+    );
+
+    // Act
+    renderGitSettingsScreen();
+    const reinstallButton = await screen.findByTestId(
+      "reinstall-gitlab-webhooks-button",
+    );
+    await userEvent.click(reinstallButton);
+
+    // Assert
+    await waitFor(() => {
+      expect(displayErrorToastSpy).toHaveBeenCalled();
+    });
   });
 });

@@ -1,15 +1,17 @@
 import hashlib
 import json
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from integrations.gitlab.gitlab_manager import GitlabManager
 from integrations.models import Message, SourceType
+from server.auth.saas_user_auth import SaasUserAuth
 from server.auth.token_manager import TokenManager
 from storage.gitlab_webhook_store import GitlabWebhookStore
 
 from openhands.core.logger import openhands_logger as logger
 from openhands.server.shared import sio
+from openhands.server.user_auth.user_auth import get_user_auth
 
 gitlab_integration_router = APIRouter(prefix='/integration')
 webhook_store = GitlabWebhookStore()
@@ -83,3 +85,48 @@ async def gitlab_events(
     except Exception as e:
         logger.exception(f'Error processing GitLab event: {e}')
         return JSONResponse(status_code=400, content={'error': 'Invalid payload.'})
+
+
+@gitlab_integration_router.post('/gitlab/reinstall-webhook')
+async def reinstall_gitlab_webhook(request: Request):
+    """Mark the GitLab webhook for the current user for reinstallation.
+
+    This endpoint marks the webhook for the user by setting webhook_exists=False,
+    which will cause the cron job to reinstall it on the next run.
+    """
+    try:
+        user_auth: SaasUserAuth = await get_user_auth(request)
+        user_id = await user_auth.get_user_id()
+
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='User not authenticated',
+            )
+
+        webhook_marked = await webhook_store.mark_webhook_for_reinstallation(user_id)
+
+        logger.info(
+            'GitLab webhook marked for reinstallation',
+            extra={
+                'user_id': user_id,
+                'webhook_marked': webhook_marked,
+            },
+        )
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                'message': 'Webhook marked for reinstallation',
+                'webhook_marked': webhook_marked,
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f'Error marking GitLab webhook for reinstallation: {e}')
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='Failed to mark webhook for reinstallation',
+        )

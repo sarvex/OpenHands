@@ -11,6 +11,7 @@ import { AzureDevOpsTokenInput } from "#/components/features/settings/git-settin
 import { ForgejoTokenInput } from "#/components/features/settings/git-settings/forgejo-token-input";
 import { ConfigureGitHubRepositoriesAnchor } from "#/components/features/settings/git-settings/configure-github-repositories-anchor";
 import { InstallSlackAppAnchor } from "#/components/features/settings/git-settings/install-slack-app-anchor";
+import DebugStackframeDot from "#/icons/debug-stackframe-dot.svg?react";
 import { I18nKey } from "#/i18n/declaration";
 import {
   displayErrorToast,
@@ -19,14 +20,18 @@ import {
 import { retrieveAxiosErrorMessage } from "#/utils/retrieve-axios-error-message";
 import { GitSettingInputsSkeleton } from "#/components/features/settings/git-settings/github-settings-inputs-skeleton";
 import { useAddGitProviders } from "#/hooks/mutation/use-add-git-providers";
+import { useReinstallGitLabWebhook } from "#/hooks/mutation/use-reinstall-gitlab-webhook";
 import { useUserProviders } from "#/hooks/use-user-providers";
 import { ProjectManagementIntegration } from "#/components/features/settings/project-management/project-management-integration";
+import { Typography } from "#/ui/typography";
 
 function GitSettingsScreen() {
   const { t } = useTranslation();
 
   const { mutate: saveGitProviders, isPending } = useAddGitProviders();
   const { mutate: disconnectGitTokens } = useLogout();
+  const { mutate: reinstallGitLabWebhook, isPending: isReinstallingWebhook } =
+    useReinstallGitLabWebhook();
 
   const { data: settings, isLoading } = useSettings();
   const { providers } = useUserProviders();
@@ -189,6 +194,44 @@ function GitSettingsScreen() {
                   {t(I18nKey.SETTINGS$SLACK)}
                 </h3>
                 <InstallSlackAppAnchor />
+              </div>
+              <div className="w-1/2 border-b border-gray-200" />
+            </>
+          )}
+
+          {shouldRenderExternalConfigureButtons && !isLoading && (
+            <>
+              <div className="mt-6 flex flex-col gap-4 pb-8">
+                <Typography.H3>{t(I18nKey.SETTINGS$GITLAB)}</Typography.H3>
+                <div className="flex items-center">
+                  <DebugStackframeDot
+                    className="w-6 h-6 shrink-0"
+                    color={isGitLabTokenSet ? "#BCFF8C" : "#FF684E"}
+                  />
+                  <Typography.Text
+                    className="text-sm text-gray-400"
+                    testId="gitlab-status-text"
+                  >
+                    {t(I18nKey.COMMON$STATUS)}:{" "}
+                    {isGitLabTokenSet
+                      ? t(I18nKey.STATUS$CONNECTED)
+                      : t(I18nKey.SETTINGS$GITLAB_NOT_CONNECTED)}
+                  </Typography.Text>
+                </div>
+                {isGitLabTokenSet && (
+                  <BrandButton
+                    className="w-55"
+                    testId="reinstall-gitlab-webhooks-button"
+                    type="button"
+                    variant="primary"
+                    isDisabled={isReinstallingWebhook}
+                    onClick={() => reinstallGitLabWebhook()}
+                  >
+                    {isReinstallingWebhook
+                      ? t(I18nKey.SETTINGS$SAVING)
+                      : t(I18nKey.SETTINGS$GITLAB_REINSTALL_WEBHOOK)}
+                  </BrandButton>
+                )}
               </div>
               <div className="w-1/2 border-b border-gray-200" />
             </>
