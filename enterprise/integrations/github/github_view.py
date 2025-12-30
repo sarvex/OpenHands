@@ -294,6 +294,7 @@ class GithubIssue(ResolverViewInterface):
             system_message_suffix=conversation_instructions,
             initial_message=initial_message,
             selected_repository=self.full_repo_name,
+            selected_branch=self._get_branch_name(),
             git_provider=ProviderType.GITHUB,
             title=f'GitHub Issue #{self.issue_number}: {self.title}',
             trigger=ConversationTrigger.RESOLVER,
