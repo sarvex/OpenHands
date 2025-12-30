@@ -3,8 +3,8 @@ from typing import Any
 from uuid import UUID
 
 import httpx
-from integrations.utils import CONVERSATION_URL, get_summary_instruction
 from github import Auth, Github, GithubIntegration
+from integrations.utils import CONVERSATION_URL, get_summary_instruction
 from pydantic import Field
 from server.auth.constants import GITHUB_APP_CLIENT_ID, GITHUB_APP_PRIVATE_KEY
 
