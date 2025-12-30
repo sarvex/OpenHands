@@ -33,7 +33,6 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
 
     github_view_data: dict[str, Any] = Field(default_factory=dict)
     should_request_summary: bool = Field(default=True)
-    should_extract: bool = Field(default=True)
     inline_pr_comment: bool = Field(default=False)
 
     async def __call__(
@@ -63,7 +62,12 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
         self.should_request_summary = False
 
         try:
+            _logger.info(f'[GitHub V1] Requesting summary {conversation_id}')
             summary = await self._request_summary(conversation_id)
+            _logger.info(
+                f'[GitHub V1] Posting summary {conversation_id}',
+                extra={'summary': summary},
+            )
             await self._post_summary_to_github(summary)
 
             return EventCallbackResult(
